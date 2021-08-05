@@ -7,39 +7,48 @@ def getMods():
     url = "https://mods.factorio.com/api/mods?page_size=max"
     raw = requests.get(url)
     results = raw.json()['results']
-    modlist = [{"name":result["name"], "releaseDate":result["latest_release"]["released_at"], "title":result["title"], "owner":result["owner"], "version": result["latest_release"]["version"]} for result in results if result.get("latest_release") != None]
-    return modlist
+    mods = {
+    mod['name']: {
+        'release_date': mod['latest_release']['released_at'],
+        'title': mod['title'],
+        'owner': mod['owner'],
+        'version': mod['latest_release']['version'],
+    }
+    for mod in results if mod.get('latest_release') is not None
+    }
+    return mods
 
-def checkUpdates(previousList, currentList):
+def checkUpdates(previous_mods, current_mods):
     """
     Compares the previous mod list to the current one. Returns a list of updated and new mods.
     """
-    previousNames = [mod["name"] for mod in previousList]
-    updated = []
-    for mod in currentList:
-        if mod["name"] in previousNames:
-            i = previousNames.index(mod["name"])
-            if mod["releaseDate"] != previousList[i]["releaseDate"]:
-                updated.append([mod, "u"])
-        else: updated.append([mod, "n"])
-    if updated != []:
-        return updated
-    else: 
-        return None
-        
-def writeMessage(updatedMods):
+    updated = {}
+    for name, mod in current_mods.items():
+        if name in previous_mods:
+            if previous_mods[name]['release_date'] != mod['release_date']:
+                mod['update'] = True
+                updated[name] = mod
+        else:
+            mod['update'] = False
+            updated[name] = mod
+    return updated or None
+
+def make_safe(string):
+    return string.replace("_", "\_").replace("*", "\*").replace("~","\~").replace("@", "\@")
+
+def singleMessageLine(mod):
+    title = make_safe(mod['title'])
+    owner = make_safe(mod['owner'])
+    return f'**{"Updated mod" if mod["update"] else "New mod"}:** {title} (updated to version: {mod["version"]}); by {owner} - <https://mods.factorio.com/mods/{mod["owner"]}/{mod["name"]}>'
+
+def writeMessage(updated_mods):
     """
     Formats the message to be posted from the list of updated mods. Returns a formatted, discord-ready message.
     """
-    output = ""
-    for mod, type in updatedMods:
-        mod["title"] = mod["title"].replace("_", "\_").replace("*", "\*").replace("~","\~").replace("@", "\@")
-        owner_formatted = mod["owner"].replace("_", "\_").replace("*", "\*").replace("~","\~").replace("@", "\@")
-        if type == "u":
-            output += f'**Updated mod:** {mod["title"]} (updated to version: {mod["version"]}); by {owner_formatted} - <https://mods.factorio.com/mods/{mod["owner"]}/{mod["name"]}>\n'
-        if type == "n":
-            output += f'**New mod:** {mod["title"]} (updated to version: {mod["version"]}); by {owner_formatted} - <https://mods.factorio.com/mods/{mod["owner"]}/{mod["name"]}>\n'
-    return output
+    return '\n'.join([
+        singleMessageLine(mod)
+        for name, mod in updated_mods.items()
+    ])
 
 def main():
     """
