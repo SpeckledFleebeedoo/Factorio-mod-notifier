@@ -8,13 +8,13 @@ def getMods():
     raw = requests.get(url)
     results = raw.json()['results']
     mods = {
-    mod['name']: {
-        'release_date': mod['latest_release']['released_at'],
-        'title': mod['title'],
-        'owner': mod['owner'],
-        'version': mod['latest_release']['version'],
-    }
-    for mod in results if mod.get('latest_release') is not None
+        mod['name']: {
+            'release_date': mod['latest_release']['released_at'],
+            'title': mod['title'],
+            'owner': mod['owner'],
+            'version': mod['latest_release']['version'],
+        }
+        for mod in results if mod.get('latest_release') is not None
     }
     return mods
 
