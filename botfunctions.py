@@ -36,17 +36,17 @@ def checkUpdates(previous_mods, current_mods):
 def make_safe(string):
     return string.replace("_", "\_").replace("*", "\*").replace("~","\~").replace("@", "\@")
 
-def singleMessageLine(mod):
+def singleMessageLine(name, mod):
     title = make_safe(mod['title'])
     owner = make_safe(mod['owner'])
-    return f'**{"Updated mod" if mod["update"] else "New mod"}:** {title} (updated to version: {mod["version"]}); by {owner} - <https://mods.factorio.com/mods/{mod["owner"]}/{mod["name"]}>'
+    return f'**{"Updated mod" if mod["update"] else "New mod"}:** {title} (updated to version: {mod["version"]}); by {owner} - <https://mods.factorio.com/mods/{mod["owner"]}/{name}>'
 
 def writeMessage(updated_mods):
     """
     Formats the message to be posted from the list of updated mods. Returns a formatted, discord-ready message.
     """
     return '\n'.join([
-        singleMessageLine(mod)
+        singleMessageLine(name, mod)
         for name, mod in updated_mods.items()
     ])
 
