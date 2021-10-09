@@ -3,6 +3,7 @@ import botfunctions
 import discord
 from discord.ext import tasks
 from dotenv import load_dotenv
+from collections import deque
 
 load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
@@ -12,14 +13,13 @@ client = discord.Client()
 
 @client.event
 async def on_ready():
-    client.oldModList = botfunctions.getMods()
+    client.ModLists = deque([botfunctions.getMods()], 2)
     check_mod_updates.start()
 
 @tasks.loop(minutes=10)
 async def check_mod_updates():
-    newModList = botfunctions.getMods()
-    updatedList = botfunctions.checkUpdates(client.oldModList, newModList)
-    client.oldModList = newModList
+    client.ModLists.append(botfunctions.getMods())
+    updatedList = botfunctions.checkUpdates(client.ModLists[0], client.ModLists[1])
     if updatedList is not None:
         output = botfunctions.writeMessage(updatedList)
         channel = client.get_channel(CHANNEL)

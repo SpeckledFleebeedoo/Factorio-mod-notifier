@@ -44,7 +44,11 @@ def singleMessageLine(name, mod):
     if len(title) > MAX_TITLE_LENGTH:
         title = title[:MAX_TITLE_LENGTH - len(TRIMMED)] + TRIMMED
     owner = make_safe(mod['owner'])
-    return f'**{"Updated mod" if mod["update"] else "New mod"}:** {title} (updated to version: {mod["version"]}); by {owner} - <https://mods.factorio.com/mods/{mod["owner"]}/{name}>'
+    link = f'<https://mods.factorio.com/mods/{mod["owner"]}/{name}>'.replace(" ", "%20")
+    if mod["update"]:
+        return f'**Updated mod:** {title} (updated to version: {mod["version"]}); by {owner} - {link}'
+    else:
+        return f'**New mod:** {title} by {owner} - {link}'
 
 def writeMessage(updated_mods):
     """
@@ -60,19 +64,17 @@ def main():
     Executed when this file is run. Will run through all functions for testing purposes.
     """
     import time
-    oldModList = None
+    from collections import deque
+    modLists = deque([], 2)
+    modLists.append(getMods())
+    time.sleep(60)
     while True:
-        if oldModList == None:
-            oldModList = getMods()
-            time.sleep(60)
-        else: 
-            newModList = getMods()
-            updatedList = checkUpdates(oldModList, newModList)
-            oldModList = newModList
-            if updatedList is not None:
-                print(writeMessage(updatedList))
-            else: print(f"{time.asctime()}: No updates")
-            time.sleep(60)
+        modLists.append(getMods())
+        updatedList = checkUpdates(modLists[0], modLists[1])
+        if updatedList is not None:
+            print(writeMessage(updatedList))
+        else: print(f"{time.asctime()}: No updates")
+        time.sleep(60)
 
 if __name__ == "__main__":
     main()
