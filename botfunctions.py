@@ -1,5 +1,8 @@
 import requests
 
+MAX_TITLE_LENGTH = 128
+TRIMMED = "<trimmed>"
+
 def getMods():
     """
     Grabs the list of all mods from the API page and filters out the relevant entries. Returns a list of mods.
@@ -38,6 +41,8 @@ def make_safe(string):
 
 def singleMessageLine(name, mod):
     title = make_safe(mod['title'])
+    if len(title) > MAX_TITLE_LENGTH:
+        title = title[:MAX_TITLE_LENGTH - len(TRIMMED)] + TRIMMED
     owner = make_safe(mod['owner'])
     return f'**{"Updated mod" if mod["update"] else "New mod"}:** {title} (updated to version: {mod["version"]}); by {owner} - <https://mods.factorio.com/mods/{mod["owner"]}/{name}>'
 
