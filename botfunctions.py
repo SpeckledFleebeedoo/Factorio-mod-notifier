@@ -8,18 +8,21 @@ def getMods():
     Grabs the list of all mods from the API page and filters out the relevant entries. Returns a list of mods.
     """
     url = "https://mods.factorio.com/api/mods?page_size=max"
-    raw = requests.get(url)
-    results = raw.json()['results']
-    mods = {
-        mod['name']: {
-            'release_date': mod['latest_release']['released_at'],
-            'title': mod['title'],
-            'owner': mod['owner'],
-            'version': mod['latest_release']['version'],
+    response = requests.get(url)
+    if response.status_code == 200:
+        results = response.json()['results']
+        mods = {
+            mod['name']: {
+                'release_date': mod['latest_release']['released_at'],
+                'title': mod['title'],
+                'owner': mod['owner'],
+                'version': mod['latest_release']['version'],
+            }
+            for mod in results if mod.get('latest_release') is not None
         }
-        for mod in results if mod.get('latest_release') is not None
-    }
-    return mods
+        return mods
+    else:
+        return None
 
 def checkUpdates(previous_mods, current_mods):
     """
