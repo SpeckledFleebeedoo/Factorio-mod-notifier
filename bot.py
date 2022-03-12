@@ -29,9 +29,10 @@ async def check_mod_updates():
                 output = botfunctions.writeMessage(updatedList)
                 channel = client.get_channel(CHANNEL)
                 await channel.send(output)
+    except DiscordServerError:
+        pass
     except:
         user = await client.fetch_user("247640901805932544")
         await user.send(traceback.format_exc())
-        raise
 
 client.run(TOKEN)
