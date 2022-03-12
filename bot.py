@@ -30,6 +30,7 @@ async def check_mod_updates():
                 channel = client.get_channel(CHANNEL)
                 await channel.send(output)
     except DiscordServerError:
+        print("Discord server error")
         pass
     except:
         user = await client.fetch_user("247640901805932544")
