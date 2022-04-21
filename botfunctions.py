@@ -7,6 +7,10 @@ con = sqlite3.connect("mods.db")
 cur = con.cursor()
 
 def firstStart():
+    """
+    Checks if the database already exists.
+    Will update database if it exists, or create a new database if not.
+    """
     cur.execute(''' SELECT count(name) FROM sqlite_master WHERE type='table' AND name='mods' ''')
     if cur.fetchone()[0]==1: #Mods table already exists.
         return checkUpdates()
@@ -59,11 +63,11 @@ def compareMods(mods):
     """
     updatedmods = []
     for mod in mods:
-        existing_entry = cur.execute("SELECT * FROM mods WHERE name=:name", {"name": mod[0]}).fetchall()[0]
+        existing_entry = cur.execute("SELECT * FROM mods WHERE name=:name", {"name": mod[0]}).fetchall()
         if existing_entry == []:
             updatedmods.append([mod, "n"])
             cur.execute("INSERT INTO mods VALUES (?, ?, ?, ?, ?)", mod)
-        elif existing_entry[4] != mod[4]:
+        elif existing_entry[0][4] != mod[4]:
             updatedmods.append([mod, "u"])
             cur.execute("INSERT OR REPLACE INTO mods VALUES (?, ?, ?, ?, ?)", mod)
     con.commit()

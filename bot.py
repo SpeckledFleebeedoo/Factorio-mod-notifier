@@ -14,7 +14,7 @@ client = discord.Client()
 @client.event
 async def on_ready():
     updatelists = botfunctions.firstStart()
-    if updatelists != []:
+    if updatelists:
         for updatelist in updatelists:
             output = botfunctions.writeMessage(updatelist)
             channel = client.get_channel(CHANNEL)
