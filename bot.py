@@ -23,7 +23,7 @@ async def on_ready():
     user = await client.fetch_user("247640901805932544")
     await user.send("Mod update bot started!")
 
-@tasks.loop(minutes=10)
+@tasks.loop(minutes=1)
 async def check_mod_updates():
     try:
         updatelists = botfunctions.checkUpdates()
