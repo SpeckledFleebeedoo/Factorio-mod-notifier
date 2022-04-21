@@ -13,7 +13,12 @@ client = discord.Client()
 
 @client.event
 async def on_ready():
-    botfunctions.firstStart()
+    updatelists = botfunctions.firstStart()
+    if updatelists != []:
+        for updatelist in updatelists:
+            output = botfunctions.writeMessage(updatelist)
+            channel = client.get_channel(CHANNEL)
+            await channel.send(output)
     check_mod_updates.start()
     user = await client.fetch_user("247640901805932544")
     await user.send("Mod update bot started!")

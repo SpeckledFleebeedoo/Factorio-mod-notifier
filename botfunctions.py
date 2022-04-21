@@ -9,7 +9,7 @@ cur = con.cursor()
 def firstStart():
     cur.execute(''' SELECT count(name) FROM sqlite_master WHERE type='table' AND name='mods' ''')
     if cur.fetchone()[0]==1: #Mods table already exists.
-        checkUpdates()
+        return checkUpdates()
     else: #Mods table does not yet exist - download full database and create database.
         url = "https://mods.factorio.com/api/mods?page_size=max"
         mods = getMods(url)
@@ -26,7 +26,7 @@ def checkUpdates():
     i = 1
     updatelists = []
     while modupdated == True:
-        url = f"https://mods.factorio.com/api/mods?page_size=20&page={i}&sort=updated_at&sort_order=desc"
+        url = f"https://mods.factorio.com/api/mods?page_size=10&page={i}&sort=updated_at&sort_order=desc"
         try:
             mods = getMods(url)
         except ConnectionError:
@@ -35,7 +35,7 @@ def checkUpdates():
         if updatedmods != []:
             updatelists.append(updatedmods)
         i += 1
-        if len(updatedmods) != 20:
+        if len(updatedmods) != 10:
             modupdated = False
     return updatelists
 
