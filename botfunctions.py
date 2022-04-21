@@ -28,7 +28,7 @@ def checkUpdates():
     """
     modupdated = True
     i = 1
-    updatelists = []
+    updatelist = []
     while modupdated == True:
         url = f"https://mods.factorio.com/api/mods?page_size=10&page={i}&sort=updated_at&sort_order=desc"
         try:
@@ -37,11 +37,11 @@ def checkUpdates():
             break
         updatedmods = compareMods(mods)
         if updatedmods != []:
-            updatelists.append(updatedmods)
+            updatelist += updatedmods
         i += 1
         if len(updatedmods) != 10:
             modupdated = False
-    return updatelists
+    return updatelist
 
 def getMods(url):
     """
@@ -87,24 +87,19 @@ def singleMessageLine(name, title, owner, version, tag):
     else:
         return f'**New mod:** {title} by {owner} - {link}'
 
-def writeMessage(updated_mods):
-    """
-    Formats the message to be posted from the list of updated mods. Returns a formatted, discord-ready message.
-    """
-    lines = []
-    for mod, tag in updated_mods:
-        name = mod[0]
-        title = mod[2]
-        owner = mod[3]
-        version = mod[4]
-        lines.append(singleMessageLine(name, title, owner, version, tag))
-    return '\n'.join(lines)
 
 def main():
     """
     Executed when this file is run. Will run through all functions for testing purposes.
     """
-    firstStart()
+    updatelist = firstStart()
+    if updatelist:
+        for mod, tag in updatelist:
+            name = mod[0]
+            title = mod[2]
+            owner = mod[3]
+            version = mod[4]
+            print(singleMessageLine(name, title, owner, version, tag))
 
 if __name__ == "__main__":
     main()
