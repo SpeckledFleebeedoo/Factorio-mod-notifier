@@ -13,7 +13,7 @@ client = discord.Client()
 
 @client.event
 async def on_ready():
-    client.ModList = botfunctions.getMods()
+    botfunctions.firstStart()
     check_mod_updates.start()
     user = await client.fetch_user("247640901805932544")
     await user.send("Mod update bot started!")
@@ -21,15 +21,14 @@ async def on_ready():
 @tasks.loop(minutes=10)
 async def check_mod_updates():
     try:
-        newModList = botfunctions.getMods()
-        if newModList != None:
-            updatedList = botfunctions.checkUpdates(client.ModList, newModList)
-            client.ModList = newModList
-            if updatedList is not None:
-                output = botfunctions.writeMessage(updatedList)
+        updatelists = botfunctions.checkUpdates()
+        if updatelists != []:
+            for updatelist in updatelists:
+                output = botfunctions.writeMessage(updatelist)
                 channel = client.get_channel(CHANNEL)
                 await channel.send(output)
-    except DiscordServerError:
+                
+    except discord.DiscordServerError:
         print("Discord server error")
         pass
     except:

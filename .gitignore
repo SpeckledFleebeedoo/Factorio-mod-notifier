@@ -1,3 +1,5 @@
 .env
+.env_main
 __pycache__/
 .vscode/
+mods.db
