@@ -21,6 +21,7 @@ async def on_ready():
         await send_update_messages(updatelist)
     if not check_mod_updates.is_running():
         check_mod_updates.start()
+    await client.change_presence(activity = discord.Activity(type=discord.ActivityType.watching, name="the mod pipes"))
     user = await client.fetch_user("247640901805932544")
     await user.send("Mod update bot started!")
 
@@ -55,7 +56,7 @@ async def create_embed(name: str, title: str, owner: str, version: str, tag: str
     owner = botfunctions.make_safe(owner)
     if tag == "u":
         embedtitle = f'**Updated mod:** \n{title}'
-        color = 0x3498DB
+        color = 0x5865F2
     elif tag == "n":
         embedtitle = f'**New mod:** \n{title}'
         color = 0x2ECC71
