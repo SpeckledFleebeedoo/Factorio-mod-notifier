@@ -58,7 +58,7 @@ def getMods(url: str) -> list:
     else:
         raise ConnectionError("Failed to retrieve mod list")
 
-def compareMods(mods: list) -> list[list, str]:
+def compareMods(mods: list) -> list:
     """
     Compares mods in list to entries stored in database. Sends list of updated mods to messager. 
 
