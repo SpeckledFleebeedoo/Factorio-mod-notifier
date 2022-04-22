@@ -4,7 +4,7 @@ import sqlite3
 con = sqlite3.connect("mods.db")
 cur = con.cursor()
 
-def firstStart() -> list | None:
+def firstStart() -> list:
     """
     Checks if the database already exists.
     Will update database if it exists, or create a new database if not.
@@ -82,7 +82,7 @@ def make_safe(string: str) -> str:
     """
     return string.replace("_", "\_").replace("*", "\*").replace("~","\~").replace("@", "@​\u200b")
 
-def getThumbnail(name: str) -> str | None:
+def getThumbnail(name: str) -> str:
     """
     Finds the thumbnail for the specified mods.
 
