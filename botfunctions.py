@@ -1,8 +1,6 @@
 import requests
 import sqlite3
 
-MAX_TITLE_LENGTH = 128
-TRIMMED = "<trimmed>"
 con = sqlite3.connect("mods.db")
 cur = con.cursor()
 
@@ -74,19 +72,20 @@ def compareMods(mods):
     return updatedmods
 
 def make_safe(string):
-    return string.replace("_", "\_").replace("*", "\*").replace("~","\~").replace("@", "\@")
+    return string.replace("_", "\_").replace("*", "\*").replace("~","\~").replace("@", "@​\u200b")
 
-def singleMessageLine(name, title, owner, version, tag):
-    title = make_safe(title)
-    if len(title) > MAX_TITLE_LENGTH:
-        title = title[:MAX_TITLE_LENGTH - len(TRIMMED)] + TRIMMED
-    owner = make_safe(owner)
-    link = f'<https://mods.factorio.com/mods/{owner}/{name}>'.replace(" ", "%20")
-    if tag == "u":
-        return f'**Updated mod:** {title} (updated to version: {version}); by {owner} - {link}'
+def getThumbnail(name):
+    url = f"https://mods.factorio.com/api/mods/{name}"
+    response = requests.get(url)
+    if response.status_code == 200:
+        thumbnailraw = response.json()["thumbnail"]
+        if thumbnailraw != "/assets/.thumb.png":
+            thumbnailURL = "https://assets-mod.factorio.com" + thumbnailraw
+            return thumbnailURL
+        else:
+            return None
     else:
-        return f'**New mod:** {title} by {owner} - {link}'
-
+        return None
 
 def main():
     """
@@ -99,7 +98,7 @@ def main():
             title = mod[2]
             owner = mod[3]
             version = mod[4]
-            print(singleMessageLine(name, title, owner, version, tag))
+            # print(singleMessageLine(name, title, owner, version, tag))
 
 if __name__ == "__main__":
     main()
