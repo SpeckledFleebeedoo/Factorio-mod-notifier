@@ -39,7 +39,7 @@ async def check_mod_updates():
         user = await client.fetch_user("247640901805932544")
         await user.send(traceback.format_exc())
 
-async def send_update_messages(updatelist: list[list, str]) -> None:
+async def send_update_messages(updatelist: list[list, str]):
     for mod, tag in updatelist:
         name = mod[0]
         title = mod[2]
@@ -49,7 +49,7 @@ async def send_update_messages(updatelist: list[list, str]) -> None:
         channel = client.get_channel(CHANNEL)
         await channel.send(embed=output)
 
-async def create_embed(name: str, title: str, owner: str, version: str, tag: str) -> discord.Embed:
+async def create_embed(name: str, title: str, owner: str, version: str, tag: str):
     title = botfunctions.make_safe(title)
     if len(title) > MAX_TITLE_LENGTH:
         title = title[:MAX_TITLE_LENGTH - len(TRIMMED)] + TRIMMED

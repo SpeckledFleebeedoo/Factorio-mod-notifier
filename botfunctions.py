@@ -4,7 +4,7 @@ import sqlite3
 con = sqlite3.connect("mods.db")
 cur = con.cursor()
 
-def firstStart() -> list[list] | None:
+def firstStart() -> list[] | None:
     """
     Checks if the database already exists.
     Will update database if it exists, or create a new database if not.
@@ -22,7 +22,7 @@ def firstStart() -> list[list] | None:
         cur.executemany("INSERT OR IGNORE INTO mods VALUES (?, ?, ?, ?, ?)", mods)
         con.commit()
 
-def checkUpdates() -> list[list]:
+def checkUpdates():
     """
     Iterates through pages of recently updated mods until unchanged mods are found.
 
@@ -45,7 +45,7 @@ def checkUpdates() -> list[list]:
             modupdated = False
     return updatelist
 
-def getMods(url: str) -> list[list]:
+def getMods(url: str) -> list[]:
     """
     Grabs the list of all mods from the API page and filters out the relevant entries. 
     Returns a list of mods, each following the format [name, release date, title, owner, version]
@@ -58,7 +58,7 @@ def getMods(url: str) -> list[list]:
     else:
         raise ConnectionError("Failed to retrieve mod list")
 
-def compareMods(mods: list[list]) -> list[list, str]:
+def compareMods(mods: list[]) -> list[list, str]:
     """
     Compares mods in list to entries stored in database. Sends list of updated mods to messager. 
 
