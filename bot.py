@@ -39,7 +39,7 @@ async def check_mod_updates():
         user = await client.fetch_user("247640901805932544")
         await user.send(traceback.format_exc())
 
-async def send_update_messages(updatelist: list[list, str]):
+async def send_update_messages(updatelist: list):
     for mod, tag in updatelist:
         name = mod[0]
         title = mod[2]
