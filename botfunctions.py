@@ -4,10 +4,12 @@ import sqlite3
 con = sqlite3.connect("mods.db")
 cur = con.cursor()
 
-def firstStart():
+def firstStart() -> list[list] | None:
     """
     Checks if the database already exists.
     Will update database if it exists, or create a new database if not.
+
+    Returns a list of [name, release date, title, owner, version] if database exists already, else None
     """
     cur.execute(''' SELECT count(name) FROM sqlite_master WHERE type='table' AND name='mods' ''')
     if cur.fetchone()[0]==1: #Mods table already exists.
@@ -20,9 +22,11 @@ def firstStart():
         cur.executemany("INSERT OR IGNORE INTO mods VALUES (?, ?, ?, ?, ?)", mods)
         con.commit()
 
-def checkUpdates():
+def checkUpdates() -> list[list]:
     """
     Iterates through pages of recently updated mods until unchanged mods are found.
+
+    Returns a list of [name, release date, title, owner, version]
     """
     modupdated = True
     i = 1
@@ -41,10 +45,10 @@ def checkUpdates():
             modupdated = False
     return updatelist
 
-def getMods(url):
+def getMods(url: str) -> list[list]:
     """
     Grabs the list of all mods from the API page and filters out the relevant entries. 
-    Returns a list of mods.
+    Returns a list of mods, each following the format [name, release date, title, owner, version]
     """
     response = requests.get(url)
     if response.status_code == 200:
@@ -54,10 +58,11 @@ def getMods(url):
     else:
         raise ConnectionError("Failed to retrieve mod list")
 
-def compareMods(mods):
+def compareMods(mods: list[list]) -> list[list, str]:
     """
     Compares mods in list to entries stored in database. Sends list of updated mods to messager. 
-    Returns list of updated mods.
+
+    Returns a list of [name, release date, title, owner, version], tag
     """
     updatedmods = []
     for mod in mods:
@@ -71,10 +76,18 @@ def compareMods(mods):
     con.commit()
     return updatedmods
 
-def make_safe(string):
+def make_safe(string: str) -> str:
+    """
+    Escapes formatting to avoid unwanted behaviour in Discord messages.
+    """
     return string.replace("_", "\_").replace("*", "\*").replace("~","\~").replace("@", "@​\u200b")
 
-def getThumbnail(name):
+def getThumbnail(name: str) -> str | None:
+    """
+    Finds the thumbnail for the specified mods.
+
+    Returns either the URL or None if no thumbnail exists or the connection fails.
+    """
     url = f"https://mods.factorio.com/api/mods/{name}"
     response = requests.get(url)
     if response.status_code == 200:
@@ -98,7 +111,8 @@ def main():
             title = mod[2]
             owner = mod[3]
             version = mod[4]
-            # print(singleMessageLine(name, title, owner, version, tag))
+            thumbnail = getThumbnail(name)
+            print(title, owner, version, thumbnail)
 
 if __name__ == "__main__":
     main()
