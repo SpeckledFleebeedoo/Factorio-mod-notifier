@@ -2,33 +2,65 @@ import os
 import botfunctions
 import discord
 from discord.ext import tasks
+from discord.ext import commands
 from dotenv import load_dotenv
 import traceback
 
 MAX_TITLE_LENGTH = 128
 TRIMMED = "<trimmed>"
 
+intents = discord.Intents.none()
+intents.guilds = True
+intents.guild_messages = True
+
 load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
-CHANNEL = int(os.getenv('DISCORD_CHANNEL'))
+PREFIX = os.getenv('PREFIX') + " "
+bot = commands.Bot(command_prefix = PREFIX, intents = intents)
 
-client = discord.Client()
-
-@client.event
+@bot.event
 async def on_ready():
-    updatelist = botfunctions.firstStart()
+    guilds = bot.guilds
+    updatelist = await botfunctions.firstStart(guilds)
     if updatelist:
         await send_update_messages(updatelist)
     if not check_mod_updates.is_running():
         check_mod_updates.start()
-    await client.change_presence(activity = discord.Activity(type=discord.ActivityType.watching, name="the mod pipes"))
-    user = await client.fetch_user("247640901805932544")
+    await bot.change_presence(activity = discord.Activity(type=discord.ActivityType.watching, name="the mod pipes"))
+    user = await bot.fetch_user("247640901805932544")
     await user.send("Mod update bot started!")
+
+@bot.command()
+async def set_channel(ctx, id):
+    if id[0:2] == "<#":
+        id = id[2:-1]
+    if id.isnumeric():
+        id = int(id)
+        channel = bot.get_channel(id)
+        if channel.guild == ctx.guild:
+            await botfunctions.setChannel(ctx.guild.id, id)
+            await ctx.send(f"Mod updates channel set to <#{id}>")
+        else:
+            await ctx.send("Invalid argument, please use a channel on this server")
+    else:
+        await ctx.send("Invalid argument, please use a channel link or ID")
+
+@bot.command()
+async def invite(ctx):
+    await ctx.send("https://discord.com/api/oauth2/authorize?client_id=872540831599456296&permissions=19456&scope=bot")
+
+@bot.event
+async def on_guild_join(guild):
+    await botfunctions.addGuild(guild.id)
+
+@bot.event
+async def on_guild_remove(guild):
+    await botfunctions.removeGuild(guild.id)
 
 @tasks.loop(minutes=1)
 async def check_mod_updates():
     try:
-        updatelist = botfunctions.checkUpdates()
+        updatelist = await botfunctions.checkUpdates()
         if updatelist != []:
             await send_update_messages(updatelist)
                       
@@ -36,7 +68,7 @@ async def check_mod_updates():
         print("Discord server error")
         pass
     except:
-        user = await client.fetch_user("247640901805932544")
+        user = await bot.fetch_user("247640901805932544")
         await user.send(traceback.format_exc())
 
 async def send_update_messages(updatelist: list):
@@ -46,14 +78,16 @@ async def send_update_messages(updatelist: list):
         owner = mod[3]
         version = mod[4]
         output = await create_embed(name, title, owner, version, tag)
-        channel = client.get_channel(CHANNEL)
-        await channel.send(embed=output)
+        channels = await botfunctions.getChannels()
+        for channelID in channels:
+            channel = bot.get_channel(int(channelID[0]))
+            await channel.send(embed=output)
 
 async def create_embed(name: str, title: str, owner: str, version: str, tag: str):
-    title = botfunctions.make_safe(title)
+    title = await botfunctions.make_safe(title)
     if len(title) > MAX_TITLE_LENGTH:
         title = title[:MAX_TITLE_LENGTH - len(TRIMMED)] + TRIMMED
-    owner = botfunctions.make_safe(owner)
+    owner = await botfunctions.make_safe(owner)
     if tag == "u":
         embedtitle = f'**Updated mod:** \n{title}'
         color = 0x5865F2
@@ -62,7 +96,7 @@ async def create_embed(name: str, title: str, owner: str, version: str, tag: str
         color = 0x2ECC71
     link = f'https://mods.factorio.com/mods/{owner}/{name}'.replace(" ", "%20")
 
-    thumbnailURL = botfunctions.getThumbnail(name)
+    thumbnailURL = await botfunctions.getThumbnail(name)
 
     embed = discord.Embed(title=embedtitle, color=color, url=link)
     embed.add_field(name="Author", value=owner, inline=True)
@@ -71,4 +105,4 @@ async def create_embed(name: str, title: str, owner: str, version: str, tag: str
         embed.set_thumbnail(url=thumbnailURL)
     return embed
 
-client.run(TOKEN)
+bot.run(TOKEN)

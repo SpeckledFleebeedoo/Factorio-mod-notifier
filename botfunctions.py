@@ -4,25 +4,52 @@ import sqlite3
 con = sqlite3.connect("mods.db")
 cur = con.cursor()
 
-def firstStart() -> list:
+async def firstStart(guilds) -> list:
     """
     Checks if the database already exists.
     Will update database if it exists, or create a new database if not.
 
     Returns a list of [name, release date, title, owner, version] if database exists already, else None
     """
+    cur.execute(''' SELECT count(*) FROM sqlite_master WHERE type='table' AND name='guilds' ''')
+    if cur.fetchone()[0]==1: #Guilds table already exists
+        for guild in guilds:
+            guildentries = cur.execute("SELECT * FROM guilds WHERE id = (?)", [str(guild.id)]).fetchall()
+            if guildentries == []:
+                await addGuild(guild.id)
+    else: #Guilds table does not yet exist
+        cur.execute('''CREATE TABLE guilds
+                    (id, updates_channel, UNIQUE(id))''')
+        for guild in guilds:
+            guildentries = cur.execute("SELECT * FROM guilds WHERE id = (?)", [str(guild.id)]).fetchall()
+            if guildentries == []:
+                await addGuild(guild.id)
+
     cur.execute(''' SELECT count(name) FROM sqlite_master WHERE type='table' AND name='mods' ''')
     if cur.fetchone()[0]==1: #Mods table already exists.
-        return checkUpdates()
+        return await checkUpdates()
     else: #Mods table does not yet exist - download full database and create database.
         url = "https://mods.factorio.com/api/mods?page_size=max"
-        mods = getMods(url)
+        mods = await getMods(url)
         cur.execute('''CREATE TABLE mods
                 (name, release_date, title, owner, version, UNIQUE(name))''')
         cur.executemany("INSERT OR IGNORE INTO mods VALUES (?, ?, ?, ?, ?)", mods)
         con.commit()
 
-def checkUpdates():
+
+async def addGuild(guildID: int):
+    cur.execute("INSERT OR IGNORE INTO guilds VALUES (?, ?)", (str(guildID), None))
+    con.commit()
+
+async def removeGuild(guildID: int):
+    cur.execute("DELETE FROM guilds WHERE id = (?)", [str(guildID)])
+    con.commit()
+
+async def setChannel(guildID: int, channelID: int):
+    cur.execute("UPDATE guilds SET updates_channel = (?) WHERE id = (?)", [str(channelID), str(guildID)])
+    con.commit()
+
+async def checkUpdates():
     """
     Iterates through pages of recently updated mods until unchanged mods are found.
 
@@ -34,10 +61,10 @@ def checkUpdates():
     while modupdated == True:
         url = f"https://mods.factorio.com/api/mods?page_size=10&page={i}&sort=updated_at&sort_order=desc"
         try:
-            mods = getMods(url)
+            mods = await getMods(url)
         except ConnectionError:
             break
-        updatedmods = compareMods(mods)
+        updatedmods = await compareMods(mods)
         if updatedmods != []:
             updatelist += updatedmods
         i += 1
@@ -45,7 +72,7 @@ def checkUpdates():
             modupdated = False
     return updatelist
 
-def getMods(url: str) -> list:
+async def getMods(url: str) -> list:
     """
     Grabs the list of all mods from the API page and filters out the relevant entries. 
     Returns a list of mods, each following the format [name, release date, title, owner, version]
@@ -58,7 +85,7 @@ def getMods(url: str) -> list:
     else:
         raise ConnectionError("Failed to retrieve mod list")
 
-def compareMods(mods: list) -> list:
+async def compareMods(mods: list) -> list:
     """
     Compares mods in list to entries stored in database. Sends list of updated mods to messager. 
 
@@ -76,13 +103,13 @@ def compareMods(mods: list) -> list:
     con.commit()
     return updatedmods
 
-def make_safe(string: str) -> str:
+async def make_safe(string: str) -> str:
     """
     Escapes formatting to avoid unwanted behaviour in Discord messages.
     """
     return string.replace("_", "\_").replace("*", "\*").replace("~","\~").replace("@", "@​\u200b")
 
-def getThumbnail(name: str) -> str:
+async def getThumbnail(name: str) -> str:
     """
     Finds the thumbnail for the specified mods.
 
@@ -100,11 +127,18 @@ def getThumbnail(name: str) -> str:
     else:
         return None
 
-def main():
+async def getChannels() -> list:
+    """
+    Gets and returns a list of all set channel IDs
+    """
+    channels = cur.execute("SELECT updates_channel FROM guilds").fetchall()
+    return channels
+
+async def main():
     """
     Executed when this file is run. Will run through all functions for testing purposes.
     """
-    updatelist = firstStart()
+    updatelist = await firstStart()
     if updatelist:
         for mod, tag in updatelist:
             name = mod[0]
