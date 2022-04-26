@@ -131,7 +131,7 @@ async def getChannels() -> list:
     """
     Gets and returns a list of all set channel IDs
     """
-    channels = cur.execute("SELECT updates_channel FROM guilds").fetchall()
+    channels = cur.execute("SELECT updates_channel FROM guilds WHERE updates_channel IS NOT NULL").fetchall()
     return channels
 
 async def main():
