@@ -19,7 +19,7 @@ async def firstStart(guilds) -> list:
                 await addGuild(guild.id)
     else: #Guilds table does not yet exist
         cur.execute('''CREATE TABLE guilds
-                    (id, updates_channel, UNIQUE(id))''')
+                    (id, updates_channel, modrole, UNIQUE(id))''')
         for guild in guilds:
             guildentries = cur.execute("SELECT * FROM guilds WHERE id = (?)", [str(guild.id)]).fetchall()
             if guildentries == []:
@@ -47,6 +47,14 @@ async def removeGuild(guildID: int):
 
 async def setChannel(guildID: int, channelID: int):
     cur.execute("UPDATE guilds SET updates_channel = (?) WHERE id = (?)", [str(channelID), str(guildID)])
+    con.commit()
+
+async def getModRole(roleID: int) -> str:
+    roles = cur.execute("SELECT modrole FROM guilds WHERE id = (?)", [str(roleID)]).fetchall()
+    return roles[0][0]
+
+async def setModRole(guildID: int, roleID: int):
+    cur.execute("UPDATE guilds SET modrole = (?) WHERE id = (?)", [str(roleID), str(guildID)])
     con.commit()
 
 async def checkUpdates():
