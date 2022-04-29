@@ -126,7 +126,11 @@ async def getThumbnail(name: str) -> str:
     url = f"https://mods.factorio.com/api/mods/{name}"
     response = requests.get(url)
     if response.status_code == 200:
-        thumbnailraw = response.json()["thumbnail"]
+        json = response.json()
+        if "thumbnail" in json:
+            thumbnailraw = json["thumbnail"]
+        else:
+            return None
         if thumbnailraw != "/assets/.thumb.png":
             thumbnailURL = "https://assets-mod.factorio.com" + thumbnailraw
             return thumbnailURL
