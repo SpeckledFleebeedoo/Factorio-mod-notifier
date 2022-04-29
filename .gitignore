@@ -4,3 +4,4 @@ __pycache__/
 .vscode/
 mods.db
 tests.py
+discord-py-unstable
