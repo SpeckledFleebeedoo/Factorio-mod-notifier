@@ -1,7 +1,7 @@
 import os
 import botfunctions
 import discord
-from discord import AppCommandOptionType, app_commands
+from discord import app_commands
 from discord.ext import tasks
 from dotenv import load_dotenv
 import traceback
@@ -9,7 +9,7 @@ import traceback
 MAX_TITLE_LENGTH = 128
 TRIMMED = "<trimmed>"
 
-MY_GUILD_ID = 763041705024552990 #MUST BE REMOVED FOR PUBLIC BOT
+MY_GUILD_ID = os.getenv('MY_GUILD_ID') #MUST BE REMOVED FOR PUBLIC BOT
 
 intents = discord.Intents.none()
 intents.guilds = True
@@ -56,8 +56,6 @@ async def verify_user(interaction: discord.Interaction) -> bool:
 async def set_channel(interaction: discord.Interaction, channel: discord.TextChannel):
     '''
     Sets the channel in which mod updates are posted.
-
-    id can either be the ID of a channel or a channel mention.
     '''
     await botfunctions.setChannel(interaction.guild.id, channel.id)
     await interaction.response.send_message(f"Mod updates channel set to <#{channel.id}>", ephemeral=True)
@@ -67,9 +65,7 @@ async def set_channel(interaction: discord.Interaction, channel: discord.TextCha
 @discord.app_commands.check(verify_user)
 async def set_modrole(interaction: discord.Interaction, role: discord.Role):
     '''
-    Sets the role needed to interact with the bot.
-
-    Server admins can always use commands.
+    Sets the role needed to change bot settings. Server admins always can.
     '''
     await botfunctions.setModRole(interaction.guild.id, role.id)
     await interaction.response.send_message(f"Modrole set to <@&{role.id}>", ephemeral=True)
@@ -77,7 +73,7 @@ async def set_modrole(interaction: discord.Interaction, role: discord.Role):
 @tree.command(guild=discord.Object(id=MY_GUILD_ID))
 async def invite(interaction:discord.Interaction):
     '''
-    Posts an invite link to add the bot to another server.
+    Posts an invite link for adding the bot to another server.
     '''
     await interaction.response.send_message("https://discord.com/api/oauth2/authorize?client_id=872540831599456296&permissions=19456&scope=bot")
 
