@@ -9,8 +9,6 @@ import traceback
 MAX_TITLE_LENGTH = 128
 TRIMMED = "<trimmed>"
 
-MY_GUILD_ID = os.getenv('MY_GUILD_ID') #MUST BE REMOVED FOR PUBLIC BOT
-
 intents = discord.Intents.none()
 intents.guilds = True
 intents.integrations = True
@@ -51,7 +49,7 @@ async def verify_user(interaction: discord.Interaction) -> bool:
             await interaction.response.send_message("You do not have the right permissions for this", ephemeral=True)
             return False
 
-@tree.command(guild=discord.Object(id=MY_GUILD_ID))
+@tree.command()
 @discord.app_commands.check(verify_user)
 async def set_channel(interaction: discord.Interaction, channel: discord.TextChannel):
     '''
@@ -61,7 +59,7 @@ async def set_channel(interaction: discord.Interaction, channel: discord.TextCha
     await interaction.response.send_message(f"Mod updates channel set to <#{channel.id}>", ephemeral=True)
 
 
-@tree.command(guild=discord.Object(id=MY_GUILD_ID))
+@tree.command()
 @discord.app_commands.check(verify_user)
 async def set_modrole(interaction: discord.Interaction, role: discord.Role):
     '''
@@ -70,12 +68,12 @@ async def set_modrole(interaction: discord.Interaction, role: discord.Role):
     await botfunctions.setModRole(interaction.guild.id, role.id)
     await interaction.response.send_message(f"Modrole set to <@&{role.id}>", ephemeral=True)
 
-@tree.command(guild=discord.Object(id=MY_GUILD_ID))
+@tree.command()
 async def invite(interaction:discord.Interaction):
     '''
     Posts an invite link for adding the bot to another server.
     '''
-    await interaction.response.send_message("https://discord.com/api/oauth2/authorize?client_id=872540831599456296&permissions=19456&scope=bot")
+    await interaction.response.send_message("https://discord.com/api/oauth2/authorize?client_id=872540831599456296&permissions=18432&scope=bot%20applications.commands")
 
 @client.event
 async def on_guild_join(guild):
@@ -135,6 +133,6 @@ async def create_embed(name: str, title: str, owner: str, version: str, tag: str
     return embed
 
 async def sync_commands():
-    await tree.sync(guild=discord.Object(id=MY_GUILD_ID))
+    await tree.sync()
 
 client.run(TOKEN)
