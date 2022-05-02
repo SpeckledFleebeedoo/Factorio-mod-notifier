@@ -147,7 +147,7 @@ async def create_embed(name: str, title: str, owner: str, version: str, tag: str
     title = await botfunctions.make_safe(title)
     if len(title) > MAX_TITLE_LENGTH:
         title = title[:MAX_TITLE_LENGTH - len(TRIMMED)] + TRIMMED
-    owner = await botfunctions.make_safe(owner)
+    safeowner = await botfunctions.make_safe(owner)
     if tag == "u":
         embedtitle = f'**Updated mod:** \n{title}'
         color = 0x5865F2
@@ -159,7 +159,7 @@ async def create_embed(name: str, title: str, owner: str, version: str, tag: str
     thumbnailURL = await botfunctions.getThumbnail(name)
 
     embed = discord.Embed(title=embedtitle, color=color, url=link)
-    embed.add_field(name="Author", value=owner, inline=True)
+    embed.add_field(name="Author", value=safeowner, inline=True)
     embed.add_field(name="Version:", value=version, inline=True)
     if thumbnailURL is not None:
         embed.set_thumbnail(url=thumbnailURL)
