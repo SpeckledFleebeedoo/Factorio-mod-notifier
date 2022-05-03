@@ -38,7 +38,7 @@ async def firstStart(guilds) -> list:
 
 
 async def addGuild(guildID: int):
-    cur.execute("INSERT OR IGNORE INTO guilds VALUES (?, ?)", (str(guildID), None))
+    cur.execute("INSERT OR IGNORE INTO guilds VALUES (?, ?, ?)", (str(guildID), None, None))
     con.commit()
 
 async def removeGuild(guildID: int):
