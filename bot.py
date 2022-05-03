@@ -28,8 +28,9 @@ async def on_ready():
     if not check_mod_updates.is_running():
         check_mod_updates.start()
     await bot.change_presence(activity = discord.Activity(type=discord.ActivityType.watching, name="the mod pipes"))
-    appinfo = await bot.application_info()
-    owner = appinfo.owner
+    # appinfo = await bot.application_info()
+    # owner = appinfo.owner
+    owner = await bot.fetch_user(247640901805932544)
     await owner.send("Mod update bot started!")
 
 async def verify_user(ctx: commands.Context) -> bool:
@@ -104,8 +105,9 @@ async def on_command_error(ctx, error):
     elif isinstance(error, commands.CommandNotFound):
         pass
     else:
-        appinfo = await bot.application_info()
-        owner = appinfo.owner
+        # appinfo = await bot.application_info()
+        # owner = appinfo.owner
+        owner = await bot.fetch_user(247640901805932544)
         await owner.send(traceback.format_exc())
 
 @bot.event
@@ -127,8 +129,9 @@ async def check_mod_updates():
         print("Discord server error")
         pass
     except:
-        appinfo = await bot.application_info()
-        owner = appinfo.owner
+        # appinfo = await bot.application_info()
+        # owner = appinfo.owner
+        owner = await bot.fetch_user(247640901805932544)
         await owner.send(traceback.format_exc())
 
 async def send_update_messages(updatelist: list):
