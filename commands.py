@@ -46,21 +46,23 @@ class CommandCog(commands.Cog):
 
     @app_commands.command()
     @app_commands.guilds(763041705024552990)
-    async def sync_commands(self, interaction: discord.Interaction):
+    @commands.is_owner()
+    async def update_commands(self, interaction: discord.Interaction):
         """
         Synchronize all commands with source code.
         """
         await self.bot.tree.sync(guild=discord.Object(763041705024552990))
         await interaction.response.send_message("Commands synchronized", ephemeral=True)
-    
+
     @app_commands.command()
     @app_commands.guilds(763041705024552990)
+    @commands.is_owner()
     async def update_cogs(self, interaction: discord.Interaction):
         """
         Reload all cogs.
         """
-        await interaction.response.send_message("Reloading cogs", ephemeral=True)
         await self.bot.reload_extension("commands")
+        await interaction.response.send_message("Cogs reloaded", ephemeral=True)
 
 async def setup(bot: commands.Bot) -> None:
     await bot.add_cog(CommandCog(bot))

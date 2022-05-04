@@ -1,6 +1,7 @@
 import discord
 import sqlite3
 import aiohttp
+from discord.ext import commands
 
 DB_NAME = "mods.db"
 
@@ -12,10 +13,10 @@ async def verify_user(interaction: discord.Interaction) -> bool:
     if permissions.administrator:
         return True
     else:
-        with await sqlite3.connect(DB_NAME) as con:
-            with cur.cursor() as cur:
-                roles = cur.execute("SELECT modrole FROM guilds WHERE id = (?)", [str(interaction.guild.id)]).fetchall()
-                servermodrole =  roles[0][0]
+        with sqlite3.connect(DB_NAME) as con:
+            cur = con.cursor()
+            roles = cur.execute("SELECT modrole FROM guilds WHERE id = (?)", [str(interaction.guild.id)]).fetchall()
+            servermodrole = roles[0][0]
         userroles = [str(role.id) for role in interaction.user.roles]
         if servermodrole in userroles:
             return True
