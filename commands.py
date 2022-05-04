@@ -2,7 +2,7 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 import sqlite3
-from verification import verify_user
+from misc import verify_user
 
 DB_NAME = "mods.db"
 
@@ -16,7 +16,7 @@ class CommandCog(commands.Cog):
         '''
         Posts an invite link for adding the bot to another server.
         '''
-        await interaction.response.send_message("Link")
+        await interaction.response.send_message("https://discord.com/api/oauth2/authorize?client_id=872540831599456296&permissions=19456&scope=bot")
 
     @app_commands.command()
     @app_commands.guilds(763041705024552990)
@@ -25,10 +25,10 @@ class CommandCog(commands.Cog):
         '''
         Sets the channel in which mod updates are posted.
         '''
-        with await sqlite3.connect(DB_NAME) as con:
-            with await con.cursor() as cur:
-                await cur.execute("UPDATE guilds SET updates_channel = (?) WHERE id = (?)", [str(channel.id), str(interaction.guild.id)])
-                await con.commit()
+        with sqlite3.connect(DB_NAME) as con:
+            cur = con.cursor()
+            cur.execute("UPDATE guilds SET updates_channel = (?) WHERE id = (?)", [str(channel.id), str(interaction.guild.id)])
+            cur.commit()
         await interaction.response.send_message(f"Mod updates channel set to <#{channel.id}>", ephemeral=True)
 
     @app_commands.command()
@@ -38,10 +38,10 @@ class CommandCog(commands.Cog):
         '''
         Sets the role needed to change bot settings. Server admins always can.
         '''
-        with await sqlite3.connect(DB_NAME) as con:
-            with await con.cursor() as cur:
-                await cur.execute("UPDATE guilds SET modrole = (?) WHERE id = (?)", [str(role.id), str(interaction.guild.id)])
-                await con.commit()
+        with sqlite3.connect(DB_NAME) as con:
+            cur = con.cursor()
+            cur.execute("UPDATE guilds SET modrole = (?) WHERE id = (?)", [str(role.id), str(interaction.guild.id)])
+            cur.commit()
         await interaction.response.send_message(f"Modrole set to <@&{role.id}>", ephemeral=True)
 
     @app_commands.command()

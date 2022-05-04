@@ -1,8 +1,10 @@
 import discord
-from discord import app_commands
 from discord.ext import commands
+from discord.ext import tasks
 import sqlite3
-import requests #TODO: REPLACE WITH aiohttp
+import aiohttp
+import traceback
+from misc import getMods
 
 MAX_TITLE_LENGTH = 128
 TRIMMED = "<trimmed>"
@@ -11,6 +13,25 @@ DB_NAME = "mods.db"
 class ModUpdates(commands.Cog):
     def __init__(self, bot:commands.Bot) -> None:
         self.bot = bot
+        self.check_mod_updates.start()
+    
+    def cog_unload(self) -> None:
+        self.check_mod_updates.cancel()
+    
+    @tasks.loop(minutes=1)
+    async def check_mod_updates(self):
+        try:
+            updatelist = await self.checkUpdates()
+            if updatelist != []:
+                await self.send_update_messages(updatelist)
+
+        except discord.DiscordServerError:
+            print("Discord server error")
+            pass
+        except:
+            appinfo = await self.bot.application_info()
+            owner = appinfo.owner
+            await owner.send(traceback.format_exc())
     
     async def send_update_messages(self, updatelist: list):
         for mod, tag in updatelist:
@@ -58,7 +79,7 @@ class ModUpdates(commands.Cog):
         while modupdated == True:
             url = f"https://mods.factorio.com/api/mods?page_size=10&page={i}&sort=updated_at&sort_order=desc"
             try:
-                mods = await self.getMods(url)
+                mods = await getMods(url)
             except ConnectionError:
                 break
             updatedmods = await self.compareMods(mods)
@@ -69,19 +90,6 @@ class ModUpdates(commands.Cog):
                 modupdated = False
         return updatelist
 
-    async def getMods(self, url: str) -> list:
-        """
-        Grabs the list of all mods from the API page and filters out the relevant entries. 
-        Returns a list of mods, each following the format [name, release date, title, owner, version]
-        """
-        response = requests.get(url)
-        if response.status_code == 200:
-            results = response.json()['results']
-            mods = [[mod["name"], mod["latest_release"]["released_at"], mod["title"], mod["owner"], mod["latest_release"]["version"]] for mod in results if mod.get('latest_release') is not None]
-            return mods
-        else:
-            raise ConnectionError("Failed to retrieve mod list")
-
     async def compareMods(self, mods: list) -> list:
         """
         Compares mods in list to entries stored in database. Sends list of updated mods to messager. 
@@ -89,17 +97,17 @@ class ModUpdates(commands.Cog):
         Returns a list of [name, release date, title, owner, version], tag
         """
         updatedmods = []
-        with await sqlite3.connect(DB_NAME) as con:
-            with await con.cursor() as cur:
-                for mod in mods:
-                    existing_entry = cur.execute("SELECT * FROM mods WHERE name=:name", {"name": mod[0]}).fetchall()
-                    if existing_entry == []:
-                        updatedmods.append([mod, "n"])
-                        await cur.execute("INSERT INTO mods VALUES (?, ?, ?, ?, ?)", mod)
-                    elif existing_entry[0][4] != mod[4]:
-                        updatedmods.append([mod, "u"])
-                        await cur.execute("INSERT OR REPLACE INTO mods VALUES (?, ?, ?, ?, ?)", mod)
-                await con.commit()
+        with sqlite3.connect(DB_NAME) as con:
+            cur = con.cursor()
+            for mod in mods:
+                existing_entry = cur.execute("SELECT * FROM mods WHERE name=:name", {"name": mod[0]}).fetchall()
+                if existing_entry == []:
+                    updatedmods.append([mod, "n"])
+                    cur.execute("INSERT INTO mods VALUES (?, ?, ?, ?, ?)", mod)
+                elif existing_entry[0][4] != mod[4]:
+                    updatedmods.append([mod, "u"])
+                    cur.execute("INSERT OR REPLACE INTO mods VALUES (?, ?, ?, ?, ?)", mod)
+            con.commit()
         return updatedmods
 
     async def make_safe(self, string: str) -> str:
@@ -115,28 +123,29 @@ class ModUpdates(commands.Cog):
         Returns either the URL or None if no thumbnail exists or the connection fails.
         """
         url = f"https://mods.factorio.com/api/mods/{name}"
-        response = requests.get(url)
-        if response.status_code == 200:
-            json = response.json()
-            if "thumbnail" in json:
-                thumbnailraw = json["thumbnail"]
-            else:
-                return None
-            if thumbnailraw != "/assets/.thumb.png":
-                thumbnailURL = "https://assets-mod.factorio.com" + thumbnailraw
-                return thumbnailURL
-            else:
-                return None
-        else:
-            return None
+        async with aiohttp.ClientSession() as cs:
+            async with cs.get(url) as response:
+                if response.ok == True:
+                    json = await response.json()
+                    if "thumbnail" in json:
+                        thumbnailraw = json["thumbnail"]
+                    else:
+                        return None
+                    if thumbnailraw != "/assets/.thumb.png":
+                        thumbnailURL = "https://assets-mod.factorio.com" + thumbnailraw
+                        return thumbnailURL
+                    else:
+                        return None
+                else:
+                    return None
 
     async def getChannels(self) -> list:
         """
         Gets and returns a list of all set channel IDs
         """
-        with await sqlite3.connect(DB_NAME) as con:
-            with await con.cursor() as cur:
-                channels = await cur.execute("SELECT updates_channel FROM guilds WHERE updates_channel IS NOT NULL").fetchall()
+        with sqlite3.connect(DB_NAME) as con:
+            cur = con.cursor()
+            channels = cur.execute("SELECT updates_channel FROM guilds WHERE updates_channel IS NOT NULL").fetchall()
         return channels
 
 
