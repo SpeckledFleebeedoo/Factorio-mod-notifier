@@ -122,7 +122,9 @@ class CommandCog(commands.Cog):
             modslist = cur.execute("SELECT subscribedmods FROM guilds WHERE id = (?)", [str(interaction.guild_id)]).fetchall()[0][0]
             if modslist != None:
                 modslist = modslist.split(", ")
-            return [app_commands.Choice(name=name, value=name) for name in modslist if current.lower() in name.lower()]
+                return [app_commands.Choice(name=name, value=name) for name in modslist if current.lower() in name.lower()]
+            else:
+                return []
 
     @app_commands.command()
     @app_commands.guilds(763041705024552990)
