@@ -5,7 +5,7 @@ import discord
 from discord.ext import commands
 from dotenv import load_dotenv
 import sqlite3
-from misc import getMods
+from misc import get_mods
 
 DB_NAME = "mods.db"
 extensions = ["commands", "modupdates"]
@@ -39,7 +39,7 @@ class MyBot(commands.Bot):
     async def on_guild_join(guild: discord.Guild):
         with sqlite3.connect(DB_NAME) as con:
             cur = con.cursor()
-            cur.execute("INSERT OR IGNORE INTO guilds VALUES (?, ?, ?)", (str(guild.id), None, None))
+            cur.execute("INSERT OR IGNORE INTO guilds VALUES (?, ?, ?, ?)", (str(guild.id), None, None, None))
             con.commit()
         
     async def on_guild_remove(guild: discord.Guild):
@@ -59,7 +59,7 @@ class MyBot(commands.Bot):
                     await self.addGuild(guild.id)
         else: #Guilds table does not yet exist
             cur.execute('''CREATE TABLE guilds
-                        (id, updates_channel, modrole, UNIQUE(id))''')
+                        (id, updates_channel, modrole, subscribedmods, UNIQUE(id))''')
             for guild in guilds:
                 guildentries = cur.execute("SELECT * FROM guilds WHERE id = (?)", [str(guild.id)]).fetchall()
                 if guildentries == []:
@@ -69,7 +69,7 @@ class MyBot(commands.Bot):
         cur.execute(''' SELECT count(name) FROM sqlite_master WHERE type='table' AND name='mods' ''')
         if cur.fetchone()[0]!=1: #Mods table does not yet exist - download full database and create database.
             url = "https://mods.factorio.com/api/mods?page_size=max"
-            mods = await getMods(url)
+            mods = await get_mods(url)
             cur.execute('''CREATE TABLE mods
                     (name, release_date, title, owner, version, UNIQUE(name))''')
             cur.executemany("INSERT OR IGNORE INTO mods VALUES (?, ?, ?, ?, ?)", mods)

@@ -4,7 +4,7 @@ from discord.ext import tasks
 import sqlite3
 import aiohttp
 import traceback
-from misc import getMods
+from misc import get_mods
 
 MAX_TITLE_LENGTH = 128
 TRIMMED = "<trimmed>"
@@ -21,7 +21,7 @@ class ModUpdates(commands.Cog):
     @tasks.loop(minutes=1)
     async def check_mod_updates(self):
         try:
-            updatelist = await self.checkUpdates()
+            updatelist = await self.check_updates()
             if updatelist != []:
                 await self.send_update_messages(updatelist)
 
@@ -40,11 +40,16 @@ class ModUpdates(commands.Cog):
             owner = mod[3]
             version = mod[4]
             output = await self.create_embed(name, title, owner, version, tag)
-            channels = await self.getChannels()
+            
+            with sqlite3.connect(DB_NAME) as con:
+                cur = con.cursor()
+                channels = cur.execute("SELECT updates_channel FROM guilds WHERE updates_channel IS NOT NULL").fetchall()
             for channelID in channels:
-                channel = self.bot.get_channel(int(channelID[0]))
-                await channel.send(embed=output)
-
+                subscriptions = cur.execute("SELECT subscribedmods FROM guilds WHERE updates_channel = (?)", channelID).fetchall()[0][0]
+                if subscriptions == None or name in ", ".split(subscriptions):
+                    channel = self.bot.get_channel(int(channelID[0]))
+                    await channel.send(embed=output)
+                    
     async def create_embed(self, name: str, title: str, owner: str, version: str, tag: str):
         title = await self.make_safe(title)
         if len(title) > MAX_TITLE_LENGTH:
@@ -58,7 +63,7 @@ class ModUpdates(commands.Cog):
             color = 0x2ECC71
         link = f'https://mods.factorio.com/mods/{owner}/{name}'.replace(" ", "%20")
 
-        thumbnailURL = await self.getThumbnail(name)
+        thumbnailURL = await self.get_thumbnail(name)
 
         embed = discord.Embed(title=embedtitle, color=color, url=link)
         embed.add_field(name="Author", value=safeowner, inline=True)
@@ -67,7 +72,7 @@ class ModUpdates(commands.Cog):
             embed.set_thumbnail(url=thumbnailURL)
         return embed
 
-    async def checkUpdates(self):
+    async def check_updates(self):
         """
         Iterates through pages of recently updated mods until unchanged mods are found.
 
@@ -79,10 +84,10 @@ class ModUpdates(commands.Cog):
         while modupdated == True:
             url = f"https://mods.factorio.com/api/mods?page_size=10&page={i}&sort=updated_at&sort_order=desc"
             try:
-                mods = await getMods(url)
+                mods = await get_mods(url)
             except ConnectionError:
                 break
-            updatedmods = await self.compareMods(mods)
+            updatedmods = await self.compare_mods(mods)
             if updatedmods != []:
                 updatelist += updatedmods
             i += 1
@@ -90,7 +95,7 @@ class ModUpdates(commands.Cog):
                 modupdated = False
         return updatelist
 
-    async def compareMods(self, mods: list) -> list:
+    async def compare_mods(self, mods: list) -> list:
         """
         Compares mods in list to entries stored in database. Sends list of updated mods to messager. 
 
@@ -116,7 +121,7 @@ class ModUpdates(commands.Cog):
         """
         return string.replace("_", "\_").replace("*", "\*").replace("~","\~").replace("@", "@​\u200b")
 
-    async def getThumbnail(self, name: str) -> str:
+    async def get_thumbnail(self, name: str) -> str:
         """
         Finds the thumbnail for the specified mods.
 
@@ -139,14 +144,11 @@ class ModUpdates(commands.Cog):
                 else:
                     return None
 
-    async def getChannels(self) -> list:
+    async def get_channels(self) -> list:
         """
         Gets and returns a list of all set channel IDs
         """
-        with sqlite3.connect(DB_NAME) as con:
-            cur = con.cursor()
-            channels = cur.execute("SELECT updates_channel FROM guilds WHERE updates_channel IS NOT NULL").fetchall()
-        return channels
+        
 
 
 async def setup(bot: commands.Bot) -> None:

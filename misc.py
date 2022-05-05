@@ -24,7 +24,7 @@ async def verify_user(interaction: discord.Interaction) -> bool:
             await interaction.response.send_message("You do not have the right permissions for this", ephemeral=True)
             return False
 
-async def getMods(url: str) -> list:
+async def get_mods(url: str) -> list:
     """
     Grabs the list of all mods from the API page and filters out the relevant entries. 
     Returns a list of mods, each following the format [name, release date, title, owner, version]
