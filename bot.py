@@ -23,11 +23,11 @@ class MyBot(commands.Bot):
         super().__init__(*args, **kwargs)
     
     async def setup_hook(self) -> None:
-        for extension in extensions:
-            await bot.load_extension(extension)
         with sqlite3.connect(DB_NAME) as con:
             cur = con.cursor()
             await self.make_or_update_tables(con, cur)
+        for extension in extensions:
+            await bot.load_extension(extension)
 
     async def on_ready(self):
         await bot.tree.sync(guild=discord.Object(763041705024552990))
@@ -50,7 +50,7 @@ class MyBot(commands.Bot):
     
     async def make_or_update_tables(self, con, cur):
         #Check if guilds table exists, update or create if necessary
-        guilds = bot.guilds
+        guilds = [guild async for guild in bot.fetch_guilds(limit=150)]
         cur.execute(''' SELECT count(*) FROM sqlite_master WHERE type='table' AND name='guilds' ''')
         if cur.fetchone()[0]==1: #Guilds table already exists
             for guild in guilds: #Add guilds that were joined while bot was offline
@@ -63,7 +63,10 @@ class MyBot(commands.Bot):
             for guild in guilds:
                 guildentries = cur.execute("SELECT * FROM guilds WHERE id = (?)", [str(guild.id)]).fetchall()
                 if guildentries == []:
-                    await self.addGuild(guild.id)
+                    with sqlite3.connect(DB_NAME) as con:
+                        cur = con.cursor()
+                        cur.execute("INSERT OR IGNORE INTO guilds VALUES (?, ?, ?, ?)", (str(guild.id), None, None, None))
+                        con.commit()
 
         #Check if mods table exists, create if necessary
         cur.execute(''' SELECT count(name) FROM sqlite_master WHERE type='table' AND name='mods' ''')
@@ -75,5 +78,5 @@ class MyBot(commands.Bot):
             cur.executemany("INSERT OR IGNORE INTO mods VALUES (?, ?, ?, ?, ?)", mods)
             con.commit()
 
-bot = MyBot(command_prefix="~", intents=intents)
+bot = MyBot(command_prefix=PREFIX, intents=intents)
 bot.run(TOKEN)
