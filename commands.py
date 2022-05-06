@@ -11,6 +11,9 @@ class CommandCog(commands.Cog):
         self.bot = bot
         self.update_mods_cache.start()
     
+    def cog_unload(self) -> None:
+        self.update_mods_cache.cancel()
+    
     @tasks.loop(minutes=20)
     async def update_mods_cache(self):
         with sqlite3.connect(DB_NAME) as con:
