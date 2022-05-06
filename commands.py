@@ -18,11 +18,10 @@ class CommandCog(commands.Cog):
     async def update_mods_cache(self):
         with sqlite3.connect(DB_NAME) as con:
             cur = con.cursor()
-            modslist = cur.execute("SELECT name FROM mods").fetchall()
-            self.modscache = [name[0] for name in modslist]
+            modslist = cur.execute("SELECT name, title FROM mods").fetchall()
+            self.modscache = [name for name in modslist]
 
     @app_commands.command()
-    @app_commands.guilds(763041705024552990)
     async def invite(self, interaction:discord.Interaction):
         '''
         Posts an invite link for adding the bot to another server.
@@ -30,33 +29,30 @@ class CommandCog(commands.Cog):
         await interaction.response.send_message("https://discord.com/api/oauth2/authorize?client_id=872540831599456296&permissions=19456&scope=bot")
 
     @app_commands.command()
-    @app_commands.guilds(763041705024552990)
     @app_commands.check(verify_user)
-    async def set_channel(interaction: discord.Interaction, channel: int): # discord.TextChannel):
+    async def set_channel(self, interaction: discord.Interaction, channel: discord.TextChannel): # discord.TextChannel):
         '''
         Sets the channel in which mod updates are posted.
         '''
         with sqlite3.connect(DB_NAME) as con:
             cur = con.cursor()
             cur.execute("UPDATE guilds SET updates_channel = (?) WHERE id = (?)", [str(channel.id), str(interaction.guild_id)])
-            cur.commit()
+            con.commit()
         await interaction.response.send_message(f"Mod updates channel set to <#{channel.id}>", ephemeral=True)
 
     @app_commands.command()
-    @app_commands.guilds(763041705024552990)
     @app_commands.check(verify_user)
-    async def set_modrole(interaction: discord.Interaction, role: discord.Role):
+    async def set_modrole(self, interaction: discord.Interaction, role: discord.Role):
         '''
         Sets the role needed to change bot settings. Server admins always can.
         '''
         with sqlite3.connect(DB_NAME) as con:
             cur = con.cursor()
             cur.execute("UPDATE guilds SET modrole = (?) WHERE id = (?)", [str(role.id), str(interaction.guild_id)])
-            cur.commit()
+            con.commit()
         await interaction.response.send_message(f"Modrole set to <@&{role.id}>", ephemeral=True)
     
     @app_commands.command()
-    @app_commands.guilds(763041705024552990)
     @app_commands.check(verify_user)
     async def add_subscription(self, interaction: discord.Interaction, modname: str):
         """
@@ -73,7 +69,7 @@ class CommandCog(commands.Cog):
                 if modname not in subscribedmods:
                     subscribedmods.append(modname)
                     subscribedmods = ", ".join(subscribedmods)
-                    cur.execute("UPDATE guilds SET subscribedmods = (?) where id = (?)", [subscribedmods, str(interaction.guild_id)])
+                    cur.execute("UPDATE guilds SET subscribedmods = (?) WHERE id = (?)", [subscribedmods, str(interaction.guild_id)])
                     con.commit()
                     await interaction.response.send_message(f"{modname} added to subscription list", ephemeral=False)
                 else:
@@ -86,10 +82,9 @@ class CommandCog(commands.Cog):
     
     @add_subscription.autocomplete("modname")
     async def modname_autocomplete(self, interaction: discord.Interaction, current: str):
-        return [app_commands.Choice(name=name, value=name) for name in self.modscache if current.lower() in name.lower()][0:25]
+        return [app_commands.Choice(name=title, value=name) for name, title in self.modscache if current.lower() in name.lower()][0:25]
 
     @app_commands.command()
-    @app_commands.guilds(763041705024552990)
     @app_commands.check(verify_user)
     async def show_subscriptions(self, interaction: discord.Interaction):
         """
@@ -104,7 +99,6 @@ class CommandCog(commands.Cog):
                 await interaction.response.send_message("This server is not subscribed to any mods. All updates will be sent.", ephemeral=False)
 
     @app_commands.command()
-    @app_commands.guilds(763041705024552990)
     @app_commands.check(verify_user)
     async def remove_subscription(self, interaction: discord.Interaction, modname: str):
         """
@@ -117,7 +111,10 @@ class CommandCog(commands.Cog):
             if modname in modslist:
                 modslist.remove(modname)
                 modslist = ", ".join(modslist)
+                if modslist == "":
+                    modslist = None
                 cur.execute("UPDATE guilds SET subscribedmods = (?) WHERE id = (?)", [modslist, str(interaction.guild_id)])
+                con.commit()
                 await interaction.response.send_message(f"{modname} removed from subscriptions", ephemeral=False)
             else:
                 await interaction.response.send_message(f"{modname} not found in subscriptions", ephemeral=True)
@@ -140,7 +137,7 @@ class CommandCog(commands.Cog):
         """
         Synchronize all commands with source code.
         """
-        await self.bot.tree.sync(guild=discord.Object(763041705024552990))
+        await self.bot.tree.sync()
         await interaction.response.send_message("Commands synchronized", ephemeral=True)
 
     @app_commands.command()

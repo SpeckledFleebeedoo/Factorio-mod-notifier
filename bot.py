@@ -30,7 +30,7 @@ class MyBot(commands.Bot):
             await bot.load_extension(extension)
 
     async def on_ready(self):
-        await bot.tree.sync(guild=discord.Object(763041705024552990))
+        # await bot.tree.sync(guild=discord.Object(763041705024552990))
         await bot.change_presence(status=discord.Status.online, activity=discord.Game("Factorio"))
         appinfo = await self.application_info()
         owner = appinfo.owner
