@@ -5,6 +5,7 @@ import sqlite3
 from misc import verify_user
 
 DB_NAME = "mods.db"
+extensions = ["commands", "modupdates"]
 
 class CommandCog(commands.Cog):
     def __init__(self, bot:commands.Bot) -> None:
@@ -20,13 +21,6 @@ class CommandCog(commands.Cog):
             cur = con.cursor()
             modslist = cur.execute("SELECT name, title FROM mods").fetchall()
             self.modscache = [name for name in modslist]
-
-    @app_commands.command()
-    async def invite(self, interaction:discord.Interaction):
-        '''
-        Posts an invite link for adding the bot to another server.
-        '''
-        await interaction.response.send_message("https://discord.com/api/oauth2/authorize?client_id=872540831599456296&permissions=19456&scope=bot")
 
     @app_commands.command()
     @app_commands.check(verify_user)
@@ -158,8 +152,25 @@ class CommandCog(commands.Cog):
         """
         Reload all cogs.
         """
-        await self.bot.reload_extension("commands")
+        for extension in extensions:
+            await self.bot.reload_extension(extension)
         await interaction.response.send_message("Cogs reloaded", ephemeral=True)
+
+    @app_commands.command()
+    async def botinfo(self, interaction: discord.Interaction):
+        """
+        Shows info about the bot.
+        """
+        with sqlite3.connect(DB_NAME) as con:
+            cur = con.cursor()
+            servers = cur.execute("SELECT * FROM guilds").fetchall()
+            servercount = len(servers)
+        embed = discord.Embed(colour=0x5865F2, title="Factorio Mod Notifier")
+        embed.add_field(name="Number of servers", value=servercount, inline=False)
+        embed.add_field(name="Creator", value="SpeckledFleebeedoo#8679 (<@247640901805932544>)", inline=False)
+        embed.add_field(name="Source", value="[GitHub](https://www.github.com/SpeckledFleebeedoo/Factorio-mod-notifier)")
+        embed.add_field(name="Invite link", value="[Invite](https://discord.com/api/oauth2/authorize?client_id=872540831599456296&permissions=274877925376&scope=bot%20applications.commands)")
+        await interaction.response.send_message(embed=embed)
 
 async def setup(bot: commands.Bot) -> None:
     await bot.add_cog(CommandCog(bot))
