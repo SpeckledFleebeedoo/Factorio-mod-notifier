@@ -30,7 +30,8 @@ class CommandCog(commands.Cog):
 
     @app_commands.command()
     @app_commands.check(verify_user)
-    async def set_channel(self, interaction: discord.Interaction, channel: discord.TextChannel): # discord.TextChannel):
+    @app_commands.guild_only()
+    async def set_channel(self, interaction: discord.Interaction, channel: discord.TextChannel):
         '''
         Sets the channel in which mod updates are posted.
         '''
@@ -38,10 +39,11 @@ class CommandCog(commands.Cog):
             cur = con.cursor()
             cur.execute("UPDATE guilds SET updates_channel = (?) WHERE id = (?)", [str(channel.id), str(interaction.guild_id)])
             con.commit()
-        await interaction.response.send_message(f"Mod updates channel set to <#{channel.id}>", ephemeral=True)
+        await interaction.response.send_message(f"Mod updates channel set to <#{channel.id}>", ephemeral=False)
 
     @app_commands.command()
     @app_commands.check(verify_user)
+    @app_commands.guild_only()
     async def set_modrole(self, interaction: discord.Interaction, role: discord.Role):
         '''
         Sets the role needed to change bot settings. Server admins always can.
@@ -50,10 +52,11 @@ class CommandCog(commands.Cog):
             cur = con.cursor()
             cur.execute("UPDATE guilds SET modrole = (?) WHERE id = (?)", [str(role.id), str(interaction.guild_id)])
             con.commit()
-        await interaction.response.send_message(f"Modrole set to <@&{role.id}>", ephemeral=True)
+        await interaction.response.send_message(f"Modrole set to <@&{role.id}>", ephemeral=False)
     
     @app_commands.command()
     @app_commands.check(verify_user)
+    @app_commands.guild_only()
     async def add_subscription(self, interaction: discord.Interaction, modname: str):
         """
         Add a mod to the subscription list of this server.
@@ -61,24 +64,27 @@ class CommandCog(commands.Cog):
         Notifications will only be sent for subscribed mods. Autocomplete may take up to 20 minutes to update.
         """
         with sqlite3.connect(DB_NAME) as con:
-            cur = con.cursor()
-            subscribedmods = cur.execute("SELECT subscribedmods FROM guilds WHERE id = (?)", [str(interaction.guild_id)]).fetchall()[0][0]
-            
-            if subscribedmods is not None:
-                subscribedmods = subscribedmods.split(", ")
-                if modname not in subscribedmods:
-                    subscribedmods.append(modname)
-                    subscribedmods = ", ".join(subscribedmods)
-                    cur.execute("UPDATE guilds SET subscribedmods = (?) WHERE id = (?)", [subscribedmods, str(interaction.guild_id)])
+            if modname in [name for name, _ in self.modscache]:
+                cur = con.cursor()
+                subscribedmods = cur.execute("SELECT subscribedmods FROM guilds WHERE id = (?)", [str(interaction.guild_id)]).fetchall()[0][0]
+                
+                if subscribedmods is not None:
+                    subscribedmods = subscribedmods.split(", ")
+                    if modname not in subscribedmods:
+                        subscribedmods.append(modname)
+                        subscribedmods = ", ".join(subscribedmods)
+                        cur.execute("UPDATE guilds SET subscribedmods = (?) WHERE id = (?)", [subscribedmods, str(interaction.guild_id)])
+                        con.commit()
+                        await interaction.response.send_message(f"{modname} added to subscription list", ephemeral=False)
+                    else:
+                        await interaction.response.send_message(f"{modname} already in subscription list", ephemeral=True)
+                else: 
+                    subscribedmods = modname
+                    cur.execute("UPDATE guilds SET subscribedmods = (?) where id = (?)", [subscribedmods, str(interaction.guild_id)])
                     con.commit()
                     await interaction.response.send_message(f"{modname} added to subscription list", ephemeral=False)
-                else:
-                    await interaction.response.send_message(f"{modname} already in subscription list", ephemeral=True)
-            else: 
-                subscribedmods = modname
-                cur.execute("UPDATE guilds SET subscribedmods = (?) where id = (?)", [subscribedmods, str(interaction.guild_id)])
-                con.commit()
-                await interaction.response.send_message(f"{modname} added to subscription list", ephemeral=False)
+            else:
+                await interaction.response.send_message("Invalid mod name", ephemeral=True)
     
     @add_subscription.autocomplete("modname")
     async def modname_autocomplete(self, interaction: discord.Interaction, current: str):
@@ -86,6 +92,7 @@ class CommandCog(commands.Cog):
 
     @app_commands.command()
     @app_commands.check(verify_user)
+    @app_commands.guild_only()
     async def show_subscriptions(self, interaction: discord.Interaction):
         """
         Shows the mods this server is subscribed to.
@@ -100,6 +107,7 @@ class CommandCog(commands.Cog):
 
     @app_commands.command()
     @app_commands.check(verify_user)
+    @app_commands.guild_only()
     async def remove_subscription(self, interaction: discord.Interaction, modname: str):
         """
         Shows the mods this server is subscribed to.
@@ -115,7 +123,10 @@ class CommandCog(commands.Cog):
                     modslist = None
                 cur.execute("UPDATE guilds SET subscribedmods = (?) WHERE id = (?)", [modslist, str(interaction.guild_id)])
                 con.commit()
-                await interaction.response.send_message(f"{modname} removed from subscriptions", ephemeral=False)
+                if modslist == None:
+                    await interaction.response.send_message(f"{modname} removed from subscriptions. \n\nSubscription list empty, sending all mod updates.", ephemeral=False)
+                else: 
+                    await interaction.response.send_message(f"{modname} removed from subscriptions", ephemeral=False)
             else:
                 await interaction.response.send_message(f"{modname} not found in subscriptions", ephemeral=True)
 
