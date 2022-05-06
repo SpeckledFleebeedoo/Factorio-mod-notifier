@@ -1,6 +1,6 @@
 import discord
 from discord import app_commands
-from discord.ext import commands
+from discord.ext import commands, tasks
 import sqlite3
 from misc import verify_user
 
@@ -9,6 +9,14 @@ DB_NAME = "mods.db"
 class CommandCog(commands.Cog):
     def __init__(self, bot:commands.Bot) -> None:
         self.bot = bot
+        self.update_mods_cache.start()
+    
+    @tasks.loop(minutes=20)
+    async def update_mods_cache(self):
+        with sqlite3.connect(DB_NAME) as con:
+            cur = con.cursor()
+            modslist = cur.execute("SELECT name FROM mods").fetchall()
+            self.modscache = [name[0] for name in modslist]
 
     @app_commands.command()
     @app_commands.guilds(763041705024552990)
@@ -21,7 +29,7 @@ class CommandCog(commands.Cog):
     @app_commands.command()
     @app_commands.guilds(763041705024552990)
     @app_commands.check(verify_user)
-    async def set_channel(interaction: discord.Interaction, channel: discord.TextChannel):
+    async def set_channel(interaction: discord.Interaction, channel: int): # discord.TextChannel):
         '''
         Sets the channel in which mod updates are posted.
         '''
@@ -51,7 +59,7 @@ class CommandCog(commands.Cog):
         """
         Add a mod to the subscription list of this server.
 
-        Notifications will only be sent for subscribed mods. 
+        Notifications will only be sent for subscribed mods. Autocomplete may take up to 20 minutes to update.
         """
         with sqlite3.connect(DB_NAME) as con:
             cur = con.cursor()
@@ -75,11 +83,7 @@ class CommandCog(commands.Cog):
     
     @add_subscription.autocomplete("modname")
     async def modname_autocomplete(self, interaction: discord.Interaction, current: str):
-        with sqlite3.connect(DB_NAME) as con:
-            cur = con.cursor()
-            modslist = cur.execute("SELECT name FROM mods").fetchall()
-            modslist = [name[0] for name in modslist]
-            return [app_commands.Choice(name=name, value=name) for name in modslist if current.lower() in name.lower()][0:25]
+        return [app_commands.Choice(name=name, value=name) for name in self.modscache if current.lower() in name.lower()][0:25]
 
     @app_commands.command()
     @app_commands.guilds(763041705024552990)
