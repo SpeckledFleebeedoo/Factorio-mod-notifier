@@ -3,9 +3,9 @@ from discord import app_commands
 from discord.ext import commands, tasks
 import sqlite3
 from misc import verify_user
+import os
 
 DB_NAME = "mods.db"
-extensions = ["commands", "modupdates"]
 
 class CommandCog(commands.Cog):
     def __init__(self, bot:commands.Bot) -> None:
@@ -152,6 +152,12 @@ class CommandCog(commands.Cog):
         """
         Reload all cogs.
         """
+        extensions = []
+        for root, _, files in os.walk("cogs"):
+            for file in files:
+                path = os.path.join(root, file)
+                if path.endswith(".py"):
+                    extensions.append(path.split(".py")[0].replace(os.sep, "."))
         for extension in extensions:
             await self.bot.reload_extension(extension)
         await interaction.response.send_message("Cogs reloaded", ephemeral=True)

@@ -9,10 +9,11 @@ from misc import get_mods
 
 DB_NAME = "mods.db"
 extensions = []
-for root, directories, files in os.walk("cogs"):
+for root, _, files in os.walk("cogs"):
     for file in files:
         path = os.path.join(root, file)
-        extensions.append(path.split(".py")[0].replace(os.sep, "."))
+        if path.endswith(".py"):
+            extensions.append(path.split(".py")[0].replace(os.sep, "."))
 
 intents = discord.Intents.none()
 intents.guilds = True
