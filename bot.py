@@ -8,7 +8,11 @@ import sqlite3
 from misc import get_mods
 
 DB_NAME = "mods.db"
-extensions = ["commands", "modupdates"]
+extensions = []
+for root, directories, files in os.walk("cogs"):
+    for file in files:
+        path = os.path.join(root, file)
+        extensions.append(path.split(".py")[0].replace(os.sep, "."))
 
 intents = discord.Intents.none()
 intents.guilds = True

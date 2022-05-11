@@ -46,7 +46,7 @@ class ModUpdates(commands.Cog):
                 channels = cur.execute("SELECT updates_channel FROM guilds WHERE updates_channel IS NOT NULL").fetchall()
             for channelID in channels:
                 subscriptions = cur.execute("SELECT subscribedmods FROM guilds WHERE updates_channel = (?)", channelID).fetchall()[0][0]
-                if subscriptions == None or name in ", ".split(subscriptions):
+                if subscriptions == None or name in subscriptions.split(", "):
                     channel = self.bot.get_channel(int(channelID[0]))
                     await channel.send(embed=output)
                     
