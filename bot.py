@@ -40,6 +40,12 @@ class MyBot(commands.Bot):
         appinfo = await self.application_info()
         owner = appinfo.owner
         await owner.send("Mod update bot started!")
+    
+    async def on_disconnect(self):
+        print("disconnected")
+    
+    async def on_connect(self):
+        print("connected")
 
     async def on_guild_join(guild: discord.Guild):
         with sqlite3.connect(DB_NAME) as con:
