@@ -104,7 +104,7 @@ class CommandCog(commands.Cog):
     @app_commands.guild_only()
     async def remove_subscription(self, interaction: discord.Interaction, modname: str):
         """
-        Shows the mods this server is subscribed to.
+        Remove a mod from the list of subscriptions.
         """
         with sqlite3.connect(DB_NAME) as con:
             cur = con.cursor()

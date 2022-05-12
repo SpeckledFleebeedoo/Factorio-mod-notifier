@@ -47,13 +47,16 @@ class MyBot(commands.Bot):
     async def on_connect(self):
         print("connected")
 
-    async def on_guild_join(guild: discord.Guild):
+    async def on_guild_join(self, guild: discord.Guild):
         with sqlite3.connect(DB_NAME) as con:
             cur = con.cursor()
             cur.execute("INSERT OR IGNORE INTO guilds VALUES (?, ?, ?, ?)", (str(guild.id), None, None, None))
             con.commit()
+        appinfo = await self.application_info()
+        owner = appinfo.owner
+        await owner.send("Joined guild")
         
-    async def on_guild_remove(guild: discord.Guild):
+    async def on_guild_remove(self, guild: discord.Guild):
         with sqlite3.connect(DB_NAME) as con:
             cur = con.cursor()
             cur.execute("DELETE FROM guilds WHERE id = (?)", [str(guild.id)])
@@ -67,7 +70,10 @@ class MyBot(commands.Bot):
             for guild in guilds: #Add guilds that were joined while bot was offline
                 guildentries = cur.execute("SELECT * FROM guilds WHERE id = (?)", [str(guild.id)]).fetchall()
                 if guildentries == []:
-                    await self.addGuild(guild.id)
+                    with sqlite3.connect(DB_NAME) as con:
+                        cur = con.cursor()
+                        cur.execute("INSERT OR IGNORE INTO guilds VALUES (?, ?, ?, ?)", (str(guild.id), None, None, None))
+                        con.commit()
         else: #Guilds table does not yet exist
             cur.execute('''CREATE TABLE guilds
                         (id, updates_channel, modrole, subscribedmods, UNIQUE(id))''')
