@@ -8,3 +8,4 @@ discord-py-*
 migrate.py
 dockerfile
 requirements.txt
+*.log

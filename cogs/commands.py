@@ -176,6 +176,7 @@ class CommandCog(commands.Cog):
         embed.add_field(name="Creator", value="SpeckledFleebeedoo#8679 (<@247640901805932544>)", inline=False)
         embed.add_field(name="Source", value="[GitHub](https://www.github.com/SpeckledFleebeedoo/Factorio-mod-notifier)")
         embed.add_field(name="Invite link", value="[Invite](https://discord.com/api/oauth2/authorize?client_id=872540831599456296&permissions=274877925376&scope=bot%20applications.commands)")
+        embed.add_field(value="To set up the bot on a new server, use /set_channel. No notifications will be sent without a channel set.")
         await interaction.response.send_message(embed=embed)
 
 async def setup(bot: commands.Bot) -> None:
