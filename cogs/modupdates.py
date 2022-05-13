@@ -4,6 +4,7 @@ from discord.ext import tasks
 import sqlite3
 import aiohttp
 import traceback
+import logging
 from misc import get_mods
 
 MAX_TITLE_LENGTH = 128
@@ -26,9 +27,11 @@ class ModUpdates(commands.Cog):
                 await self.send_update_messages(updatelist)
 
         except discord.DiscordServerError:
-            print("Discord server error")
+            logging.warning("Discord server error")
             pass
-        except:
+        except Exception as error:
+            logging.warning(f"{error} checking mod updates")
+            logging.debug(f"Traceback:{traceback.format_exc()}")
             appinfo = await self.bot.application_info()
             owner = appinfo.owner
             await owner.send(traceback.format_exc())
@@ -88,6 +91,7 @@ class ModUpdates(commands.Cog):
             try:
                 mods = await get_mods(url)
             except ConnectionError:
+                logging.warning("Connection Error while getting modlist")
                 break
             updatedmods = await self.compare_mods(mods)
             if updatedmods != []:
