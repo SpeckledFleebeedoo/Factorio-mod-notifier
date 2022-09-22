@@ -177,12 +177,13 @@ class CommandCog(commands.Cog):
         Creates an embed for the search result.
         """
         url = f"https://mods.factorio.com/api/mods/{name}".replace(" ", "%20")
+        userurl = f"https://mods.factorio.com/mod/{name}".replace(" ", "%20")
         async with aiohttp.ClientSession() as cs:
             async with cs.get(url) as response:
                 if response.ok == True:
                     json = await response.json()
                     owner = json["owner"].replace("_", "\_").replace("*", "\*").replace("~","\~").replace("@", "@​\u200b")
-                    embed = discord.Embed(title=json["title"], color=0x2ECC71, url=url, description=json["summary"])
+                    embed = discord.Embed(title=json["title"], color=0x2ECC71, url=userurl, description=json["summary"])
                     embed.add_field(name="Owner", value=owner, inline=True)
                     embed.add_field(name="Downloads", value=json["downloads_count"], inline=True)
                     if "thumbnail" in json:
