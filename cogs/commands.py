@@ -86,7 +86,7 @@ class CommandCog(commands.Cog):
     
     @add_subscription.autocomplete("modname")
     async def modname_autocomplete(self, interaction: discord.Interaction, current: str):
-        return [app_commands.Choice(name=title, value=name) for name, title in self.modscache if current.lower() in name.lower()][0:25]
+        return [app_commands.Choice(name=title, value=name) for name, title in self.modscache if current.lower() in name.lower() or current.lower() in title.lower()][0:25]
 
     @app_commands.command()
     @app_commands.check(verify_user)
@@ -145,31 +145,38 @@ class CommandCog(commands.Cog):
         Find mods by name.
         """
         await interaction.response.send_message("Looking for mods...")
-        mods = {name:title for name, title in self.modscache}
-        #find exact matches
-        foundmod = process.extractOne(modname, mods, scorer=fuzz.ratio) #[title, score, name]
-        if foundmod[1] == 100: #Exact match found
-            embed = await self.make_embed(foundmod[2])
-        
-        else: #find fuzzy matches
-            foundmods = process.extract(modname, mods, scorer=fuzz.partial_ratio) #[title, score, name]
+        modname = modname.lower()
+        mods = {name:title.lower() for name, title in self.modscache}
+        #Find exact match
+        exactmatch = [process.extractOne(modname, mods, scorer=fuzz.ratio)] #[title, score, name]
+        #Find fuzzy matches
+        fuzzymatches = process.extract(modname, mods, scorer=fuzz.partial_ratio, limit=20) #[title, score, name]
+        if exactmatch not in fuzzymatches:
+            foundmods = exactmatch + fuzzymatches
+        else:
+            foundmods = fuzzymatches
 
-            highestscore = [None, None, 0]
-            for mod in foundmods:
-                name = mod[2]
-                url = f"https://mods.factorio.com/api/mods/{name}"
-                async with aiohttp.ClientSession() as cs:
-                    async with cs.get(url) as response:
-                        if response.ok == True:
-                            json = await response.json()
-                            downloads_count = json["downloads_count"]
-                        else:
-                            downloads_count = 1
+        highestscore = [None, None, 0]
+        for mod in foundmods:
+            name = mod[2]
+            url = f"https://mods.factorio.com/api/mods/{name}"
+            async with aiohttp.ClientSession() as cs:
+                async with cs.get(url) as response:
+                    if response.ok == True:
+                        json = await response.json()
+                        downloads_count = json["downloads_count"]
+                        version = json["releases"][-1]["info_json"]["factorio_version"]
+                    else:
+                        downloads_count = 1
+            if fuzz.ratio(mod[0], modname) >= 95 and version == "1.1":
+                highestscore = [mod[0], mod[2]]
+                break
+            else:
                 score = mod[1]/50 * log10(downloads_count)
-                if score > highestscore[2]:
+                if score > highestscore[2] and version == "1.1":
                     highestscore = [mod[0], mod[2], score]
-            
-            embed = await self.make_embed(highestscore[1])
+        
+        embed = await self.make_embed(highestscore[1])
         await interaction.edit_original_response(content=None, embed=embed)
         
     async def make_embed(self, name: str):
