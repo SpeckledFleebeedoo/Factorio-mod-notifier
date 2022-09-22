@@ -2,10 +2,14 @@ import discord
 from discord import app_commands
 from discord.ext import commands, tasks
 import sqlite3
+import aiohttp
+from fuzzywuzzy import process, fuzz
+from math import log10
 from misc import verify_user
 import os
 
-DB_NAME = "mods.db"
+SHARED_VOLUME = "."
+DB_NAME = f"{SHARED_VOLUME}/mods.db"
 
 class CommandCog(commands.Cog):
     def __init__(self, bot:commands.Bot) -> None:
@@ -134,6 +138,61 @@ class CommandCog(commands.Cog):
                 return [app_commands.Choice(name=name, value=name) for name in modslist if current.lower() in name.lower()]
             else:
                 return []
+    
+    @app_commands.command()
+    async def find_mod(self, interaction: discord.Interaction, modname: str):
+        """
+        Find mods by name.
+        """
+        await interaction.response.send_message("Looking for mods...")
+        mods = {name:title for name, title in self.modscache}
+        #find exact matches
+        foundmod = process.extractOne(modname, mods, scorer=fuzz.ratio) #[title, score, name]
+        if foundmod[1] == 100: #Exact match found
+            embed = await self.make_embed(foundmod[2])
+        
+        else: #find fuzzy matches
+            foundmods = process.extract(modname, mods, scorer=fuzz.partial_ratio) #[title, score, name]
+
+            highestscore = [None, None, 0]
+            for mod in foundmods:
+                name = mod[2]
+                url = f"https://mods.factorio.com/api/mods/{name}"
+                async with aiohttp.ClientSession() as cs:
+                    async with cs.get(url) as response:
+                        if response.ok == True:
+                            json = await response.json()
+                            downloads_count = json["downloads_count"]
+                        else:
+                            downloads_count = 1
+                score = mod[1]/50 * log10(downloads_count)
+                if score > highestscore[2]:
+                    highestscore = [mod[0], mod[2], score]
+            
+            embed = await self.make_embed(highestscore[1])
+        await interaction.edit_original_response(content=None, embed=embed)
+        
+    async def make_embed(self, name: str):
+        """
+        Creates an embed for the search result.
+        """
+        url = f"https://mods.factorio.com/api/mods/{name}".replace(" ", "%20")
+        async with aiohttp.ClientSession() as cs:
+            async with cs.get(url) as response:
+                if response.ok == True:
+                    json = await response.json()
+                    owner = json["owner"].replace("_", "\_").replace("*", "\*").replace("~","\~").replace("@", "@​\u200b")
+                    embed = discord.Embed(title=json["title"], color=0x2ECC71, url=url, description=json["summary"])
+                    embed.add_field(name="Owner", value=owner, inline=True)
+                    embed.add_field(name="Downloads", value=json["downloads_count"], inline=True)
+                    if "thumbnail" in json:
+                        thumbnailraw = json["thumbnail"]
+                        if thumbnailraw != "/assets/.thumb.png":
+                            thumbnailURL = "https://assets-mod.factorio.com" + thumbnailraw
+                            embed.set_thumbnail(url=thumbnailURL)
+                    return embed
+                else:
+                    return None
 
     @app_commands.command()
     @app_commands.guilds(763041705024552990)
@@ -176,7 +235,7 @@ class CommandCog(commands.Cog):
         embed.add_field(name="Creator", value="SpeckledFleebeedoo#8679 (<@247640901805932544>)", inline=False)
         embed.add_field(name="Source", value="[GitHub](https://www.github.com/SpeckledFleebeedoo/Factorio-mod-notifier)")
         embed.add_field(name="Invite link", value="[Invite](https://discord.com/api/oauth2/authorize?client_id=872540831599456296&permissions=274877925376&scope=bot%20applications.commands)")
-        embed.add_field(value="To set up the bot on a new server, use /set_channel. No notifications will be sent without a channel set.")
+        embed.add_field(name = "Info", value="To set up the bot on a new server, use /set_channel. No notifications will be sent without a channel set.")
         await interaction.response.send_message(embed=embed)
 
 async def setup(bot: commands.Bot) -> None:

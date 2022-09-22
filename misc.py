@@ -3,7 +3,8 @@ import sqlite3
 import aiohttp
 from discord.ext import commands
 
-DB_NAME = "mods.db"
+SHARED_VOLUME = "."
+DB_NAME = f"{SHARED_VOLUME}/mods.db"
 
 async def verify_user(interaction: discord.Interaction) -> bool:
     '''

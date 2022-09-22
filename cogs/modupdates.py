@@ -9,7 +9,8 @@ from misc import get_mods
 
 MAX_TITLE_LENGTH = 128
 TRIMMED = "<trimmed>"
-DB_NAME = "mods.db"
+SHARED_VOLUME = "."
+DB_NAME = f"{SHARED_VOLUME}/mods.db"
 
 class ModUpdates(commands.Cog):
     def __init__(self, bot:commands.Bot) -> None:
@@ -21,10 +22,14 @@ class ModUpdates(commands.Cog):
     
     @tasks.loop(minutes=1)
     async def check_mod_updates(self):
+        logging.debug("Checking for mod updates")
         try:
             updatelist = await self.check_updates()
             if updatelist != []:
                 await self.send_update_messages(updatelist)
+                logging.debug(f"Sending messages for: {updatelist}")
+            else:
+                logging.debug("No updates found")
 
         except discord.DiscordServerError:
             logging.warning("Discord server error")
@@ -38,6 +43,7 @@ class ModUpdates(commands.Cog):
     
     async def send_update_messages(self, updatelist: list):
         for mod, tag in updatelist:
+            logging.debug(f"Trying to send messages for updated mod: {[mod[2]]}")
             name = mod[0]
             title = mod[2]
             owner = mod[3]

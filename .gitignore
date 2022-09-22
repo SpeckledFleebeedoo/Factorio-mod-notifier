@@ -9,3 +9,4 @@ migrate.py
 dockerfile
 requirements.txt
 *.log
+docker/

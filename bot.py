@@ -11,15 +11,18 @@ import traceback
 
 from misc import get_mods
 
-if os.path.isfile("botlog.old.log"):
-    os.remove("botlog.old.log")
+SHARED_VOLUME = "."
+DB_NAME = f"{SHARED_VOLUME}/mods.db"
 
-if os.path.isfile("botlog.log"):
-    os.rename("botlog.log", "botlog.old.log")
+if os.path.isfile(f"{SHARED_VOLUME}/botlog.old.log"):
+    os.remove(f"{SHARED_VOLUME}/botlog.old.log")
 
-logging.basicConfig(filename="botlog.log", filemode = "w", format="%(asctime)s %(levelname)s:%(message)s", level=logging.INFO)
+if os.path.isfile(f"{SHARED_VOLUME}/botlog.log"):
+    os.rename(f"{SHARED_VOLUME}/botlog.log", f"{SHARED_VOLUME}/botlog.old.log")
 
-DB_NAME = "mods.db"
+logging.basicConfig(filename=f"{SHARED_VOLUME}/botlog.log", filemode = "w", format="%(asctime)s %(levelname)s:%(message)s", level=logging.DEBUG)
+
+
 extensions = []
 logging.debug("Loading cogs")
 for root, _, files in os.walk("cogs"):
@@ -69,7 +72,7 @@ class MyBot(commands.Bot):
             cur.execute("INSERT OR IGNORE INTO guilds VALUES (?, ?, ?, ?)", (str(guild.id), None, None, None))
             con.commit()
         await self.owner.send("Joined guild")
-        logging.info(f"Joined guild: {guild.id}")
+        logging.info(f"Joined guild: {guild.name} ({guild.id})")
         
     async def on_guild_remove(self, guild: discord.Guild):
         with sqlite3.connect(DB_NAME) as con:
