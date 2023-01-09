@@ -20,7 +20,7 @@ if os.path.isfile(f"{SHARED_VOLUME}/botlog.old.log"):
 if os.path.isfile(f"{SHARED_VOLUME}/botlog.log"):
     os.rename(f"{SHARED_VOLUME}/botlog.log", f"{SHARED_VOLUME}/botlog.old.log")
 
-logging.basicConfig(filename=f"{SHARED_VOLUME}/botlog.log", filemode = "w", format="%(asctime)s %(levelname)s:%(message)s", level=logging.DEBUG)
+logging.basicConfig(filename=f"{SHARED_VOLUME}/botlog.log", filemode = "w", format="%(asctime)s %(levelname)s:%(message)s", level=logging.INFO)
 
 
 extensions = []
