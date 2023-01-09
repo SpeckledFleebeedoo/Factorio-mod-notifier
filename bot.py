@@ -120,8 +120,8 @@ class MyBot(commands.Bot):
             url = "https://mods.factorio.com/api/mods?page_size=max"
             mods = await get_mods(url)
             cur.execute('''CREATE TABLE mods
-                    (name, release_date, title, owner, version, UNIQUE(name))''')
-            cur.executemany("INSERT OR IGNORE INTO mods VALUES (?, ?, ?, ?, ?)", mods)
+                    (name, release_date, title, owner, version, factorio_version, UNIQUE(name))''')
+            cur.executemany("INSERT OR IGNORE INTO mods VALUES (?, ?, ?, ?, ?, ?)", mods)
             con.commit()
 
 bot = MyBot(command_prefix=PREFIX, intents=intents)

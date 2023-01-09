@@ -120,10 +120,10 @@ class ModUpdates(commands.Cog):
                 existing_entry = cur.execute("SELECT * FROM mods WHERE name=:name", {"name": mod[0]}).fetchall()
                 if existing_entry == []:
                     updatedmods.append([mod, "n"])
-                    cur.execute("INSERT INTO mods VALUES (?, ?, ?, ?, ?)", mod)
+                    cur.execute("INSERT INTO mods VALUES (?, ?, ?, ?, ?, ?)", mod)
                 elif existing_entry[0][4] != mod[4]:
                     updatedmods.append([mod, "u"])
-                    cur.execute("INSERT OR REPLACE INTO mods VALUES (?, ?, ?, ?, ?)", mod)
+                    cur.execute("INSERT OR REPLACE INTO mods VALUES (?, ?, ?, ?, ?, ?)", mod)
             con.commit()
         return updatedmods
 

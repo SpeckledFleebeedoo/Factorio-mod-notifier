@@ -8,6 +8,8 @@ from math import log10
 from misc import verify_user
 import os
 
+from typing import Literal
+
 SHARED_VOLUME = "."
 DB_NAME = f"{SHARED_VOLUME}/mods.db"
 
@@ -15,6 +17,14 @@ class CommandCog(commands.Cog):
     def __init__(self, bot:commands.Bot) -> None:
         self.bot = bot
         self.update_mods_cache.start()
+        try:
+            with open("factorio_version.txt", "r") as f:
+                self.factorio_version = f.read().strip()
+        except FileNotFoundError:
+            with open("factorio_version.txt", "w+") as f:
+                f.write("1.1")
+            self.factorio_version = "1.1"
+
     
     def cog_unload(self) -> None:
         self.update_mods_cache.cancel()
@@ -23,8 +33,8 @@ class CommandCog(commands.Cog):
     async def update_mods_cache(self):
         with sqlite3.connect(DB_NAME) as con:
             cur = con.cursor()
-            modslist = cur.execute("SELECT name, title FROM mods").fetchall()
-            self.modscache = [name for name in modslist]
+            modslist = cur.execute("SELECT name, title, factorio_version FROM mods").fetchall()
+            self.modscache = [mod for mod in modslist]
 
     @app_commands.command()
     @app_commands.check(verify_user)
@@ -62,7 +72,7 @@ class CommandCog(commands.Cog):
         Notifications will only be sent for subscribed mods. Autocomplete may take up to 20 minutes to update.
         """
         with sqlite3.connect(DB_NAME) as con:
-            if modname in [name for name, _ in self.modscache]:
+            if modname in [name for name, _, _ in self.modscache]:
                 cur = con.cursor()
                 subscribedmods = cur.execute("SELECT subscribedmods FROM guilds WHERE id = (?)", [str(interaction.guild_id)]).fetchall()[0][0]
                 
@@ -86,7 +96,7 @@ class CommandCog(commands.Cog):
     
     @add_subscription.autocomplete("modname")
     async def modname_autocomplete(self, interaction: discord.Interaction, current: str):
-        return [app_commands.Choice(name=title, value=name) for name, title in self.modscache if current.lower() in name.lower() or current.lower() in title.lower()][0:25]
+        return [app_commands.Choice(name=title[0:100], value=name) for name, title, _ in self.modscache if current.lower() in name.lower() or current.lower() in title.lower()][0:25]
 
     @app_commands.command()
     @app_commands.check(verify_user)
@@ -144,40 +154,53 @@ class CommandCog(commands.Cog):
         """
         Find mods by name.
         """
-        await interaction.response.send_message("Looking for mods...")
-        modname = modname.lower()
-        mods = {name:title.lower() for name, title in self.modscache}
-        #Find exact match
-        exactmatch = [process.extractOne(modname, mods, scorer=fuzz.ratio)] #[title, score, name]
-        #Find fuzzy matches
-        fuzzymatches = process.extract(modname, mods, scorer=fuzz.partial_ratio, limit=20) #[title, score, name]
-        if exactmatch not in fuzzymatches:
-            foundmods = exactmatch + fuzzymatches
+        if modname in [mod[0] for mod in self.modscache]:
+            embed = await self.make_embed(modname)
+            await interaction.response.send_message(content=None, embed=embed)
         else:
-            foundmods = fuzzymatches
+            embed = await self.make_error_embed(modname)
+            await interaction.response.send_message(content=None, embed=embed)
 
-        highestscore = [None, None, 0]
-        for mod in foundmods:
-            name = mod[2]
-            url = f"https://mods.factorio.com/api/mods/{name}"
-            async with aiohttp.ClientSession() as cs:
-                async with cs.get(url) as response:
-                    if response.ok == True:
-                        json = await response.json()
-                        downloads_count = json["downloads_count"]
-                        version = json["releases"][-1]["info_json"]["factorio_version"]
-                    else:
-                        downloads_count = 1
-            if fuzz.ratio(mod[0], modname) >= 95 and version == "1.1":
-                highestscore = [mod[0], mod[2]]
-                break
-            else:
-                score = mod[1]/50 * log10(downloads_count)
-                if score > highestscore[2] and version == "1.1":
-                    highestscore = [mod[0], mod[2], score]
+        # modname = modname.lower()
+        # mods = {name:title.lower() for name, title in self.modscache}
+        # #Find exact match
+        # exactmatch = [process.extractOne(modname, mods, scorer=fuzz.ratio)] #[title, score, name]
+        # #Find fuzzy matches
+        # fuzzymatches = process.extract(modname, mods, scorer=fuzz.partial_ratio, limit=20) #[title, score, name]
+        # if exactmatch not in fuzzymatches:
+        #     foundmods = exactmatch + fuzzymatches
+        # else:
+        #     foundmods = fuzzymatches
+
+        # highestscore = [None, None, 0]
+        # for mod in foundmods:
+        #     name = mod[2]
+        #     url = f"https://mods.factorio.com/api/mods/{name}"
+        #     async with aiohttp.ClientSession() as cs:
+        #         async with cs.get(url) as response:
+        #             if response.ok == True:
+        #                 json = await response.json()
+        #                 downloads_count = json["downloads_count"]
+        #                 version = json["releases"][-1]["info_json"]["factorio_version"]
+        #             else:
+        #                 downloads_count = 1
+        #     if fuzz.ratio(mod[0], modname) >= 95 and version == "1.1":
+        #         highestscore = [mod[0], mod[2]]
+        #         break
+        #     else:
+        #         score = mod[1]/50 * log10(downloads_count)
+        #         if score > highestscore[2] and version == "1.1":
+        #             highestscore = [mod[0], mod[2], score]
         
-        embed = await self.make_embed(highestscore[1])
-        await interaction.edit_original_response(content=None, embed=embed)
+        # embed = await self.make_embed(highestscore[1])
+        # await interaction.edit_original_response(content=None, embed=embed)
+
+    @find_mod.autocomplete("modname")
+    async def find_autocomplete(self, interaction: discord.Interaction, current: str):
+        return [app_commands.Choice(name=title[0:100], value=name) 
+            for name, title, factorio_version in self.modscache 
+            if (current.lower() in name.lower() or current.lower() in title.lower()) 
+            and factorio_version == self.factorio_version][0:25]
         
     async def make_embed(self, name: str):
         """
@@ -190,7 +213,7 @@ class CommandCog(commands.Cog):
                 if response.ok == True:
                     json = await response.json()
                     owner = json["owner"].replace("_", "\_").replace("*", "\*").replace("~","\~").replace("@", "@​\u200b")
-                    embed = discord.Embed(title=json["title"], color=0x2ECC71, url=userurl, description=json["summary"])
+                    embed = discord.Embed(title=json["title"][0:200], color=0x2ECC71, url=userurl, description=json["summary"])
                     embed.add_field(name="Owner", value=owner, inline=True)
                     embed.add_field(name="Downloads", value=json["downloads_count"], inline=True)
                     if "thumbnail" in json:
@@ -202,6 +225,24 @@ class CommandCog(commands.Cog):
                 else:
                     return None
 
+    async def make_error_embed(self, modname):
+        embed = discord.Embed(title="Mod not found", color=0xE74C3C, description=f"None of the \
+        `{len(self.modscache)}` cached mods match your search for '{modname}'. The mod you are \
+        looking for may not be available for Factorio version {self.factorio_version}, or may not be cached yet.")
+        return embed
+
+    @app_commands.command()
+    @app_commands.guilds(763041705024552990)
+    @commands.is_owner()
+    async def set_latest_factorio_version(self, interaction: discord.Interaction, version: str):
+        """
+        Set latest factorio version for use in searches.
+        """
+        self.factorio_version = version
+        with open("factorio_version.txt", "w+") as f:
+            f.write(version)
+        await interaction.response.send_message(f"Latest factorio version set to `{version}`.")
+    
     @app_commands.command()
     @app_commands.guilds(763041705024552990)
     @commands.is_owner()

@@ -28,14 +28,14 @@ async def verify_user(interaction: discord.Interaction) -> bool:
 async def get_mods(url: str) -> list:
     """
     Grabs the list of all mods from the API page and filters out the relevant entries. 
-    Returns a list of mods, each following the format [name, release date, title, owner, version]
+    Returns a list of mods, each following the format [name, release date, title, owner, version, factorio_version]
     """
     async with aiohttp.ClientSession() as cs:
         async with cs.get(url) as response:
             if response.ok == True:
                 json = await response.json()
                 results = json['results']
-                mods = [[mod["name"], mod["latest_release"]["released_at"], mod["title"], mod["owner"], mod["latest_release"]["version"]] for mod in results if mod.get('latest_release') is not None]
+                mods = [[mod["name"], mod["latest_release"]["released_at"], mod["title"], mod["owner"], mod["latest_release"]["version"], mod["latest_release"]["info_json"]["factorio_version"]] for mod in results if mod.get('latest_release') is not None]
                 return mods
             else:
                 raise ConnectionError("Failed to retrieve mod list")
