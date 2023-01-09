@@ -71,7 +71,7 @@ class MyBot(commands.Bot):
             cur = con.cursor()
             cur.execute("INSERT OR IGNORE INTO guilds VALUES (?, ?, ?, ?)", (str(guild.id), None, None, None))
             con.commit()
-        await self.owner.send("Joined guild")
+        await self.owner.send(f"Joined guild: {guild.name}")
         logging.info(f"Joined guild: {guild.name} ({guild.id})")
         
     async def on_guild_remove(self, guild: discord.Guild):
@@ -79,6 +79,7 @@ class MyBot(commands.Bot):
             cur = con.cursor()
             cur.execute("DELETE FROM guilds WHERE id = (?)", [str(guild.id)])
             con.commit()
+        await self.owner.send(f"Left guild: {guild.name}")
         logging.info(f"Left guild: {guild.id}")
     
     async def on_error(self, event):
