@@ -5,7 +5,6 @@ __pycache__/
 mods.db
 tests.py
 discord-py-*
-migrate.py
 dockerfile
 requirements.txt
 *.log
