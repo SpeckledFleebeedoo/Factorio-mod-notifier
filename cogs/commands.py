@@ -197,10 +197,18 @@ class CommandCog(commands.Cog):
 
     @find_mod.autocomplete("modname")
     async def find_autocomplete(self, interaction: discord.Interaction, current: str):
-        return [app_commands.Choice(name=title[0:100], value=name) 
-            for name, title, factorio_version in self.modscache 
-            if (current.lower() in name.lower() or current.lower() in title.lower()) 
+        latest = [app_commands.Choice(name=f"[{factorio_version}] {title[0:90]}", value=name)
+            for name, title, factorio_version in self.modscache
+            if (current.lower() in name.lower() or current.lower() in title.lower())
             and factorio_version == self.factorio_version][0:25]
+        print(len(latest))
+        if len(latest) == 25:
+            return latest
+        other = [app_commands.Choice(name=f"[{factorio_version}] {title[0:90]}", value=name)
+            for name, title, factorio_version in self.modscache
+            if (current.lower() in name.lower() or current.lower() in title.lower())
+            and factorio_version != self.factorio_version][0:25-len(latest)]
+        return latest + other
         
     async def make_embed(self, name: str):
         """
@@ -269,6 +277,16 @@ class CommandCog(commands.Cog):
         for extension in extensions:
             await self.bot.reload_extension(extension)
         await interaction.response.send_message("Cogs reloaded", ephemeral=True)
+
+    @app_commands.command()
+    @app_commands.guilds(763041705024552990)
+    @commands.is_owner()
+    async def shutdown(self, interaction: discord.Interaction):
+        """
+        Stops the bot.
+        """
+        await interaction.response.send_message("Shutting down...")
+        exit()
 
     @app_commands.command()
     async def botinfo(self, interaction: discord.Interaction):
