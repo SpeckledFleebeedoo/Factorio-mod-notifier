@@ -13,6 +13,24 @@ from typing import Literal
 SHARED_VOLUME = "."
 DB_NAME = f"{SHARED_VOLUME}/mods.db"
 
+class DeleteButton(discord.ui.View):
+    def __init__(self, user: discord.Member):
+        super().__init__()
+        self.value = None
+        self.user = user
+    
+    @discord.ui.button(label="", style=discord.ButtonStyle.grey, emoji="\ud83d\uddd1\ufe0f")
+    async def delete(self, interaction: discord.Interaction, button: discord.ui.Button):
+        self.value = True
+        self.stop()
+    
+    async def interaction_check(self, interaction: discord.Interaction):
+        if interaction.user.id == self.user.id:
+            return True
+        else:
+            return False
+
+
 class CommandCog(commands.Cog):
     def __init__(self, bot:commands.Bot) -> None:
         self.bot = bot
@@ -150,33 +168,41 @@ class CommandCog(commands.Cog):
                 return []
     
     @app_commands.command()
-    async def find_mod(self, interaction: discord.Interaction, version: Literal["latest", "any", "1.1", "1.0", "0.18", "0.17", "0.16", "0.15", "0.14", "0.13"], modname: str):
+    async def find_mod(self, interaction: discord.Interaction, modname: str, version: Literal["latest", "any", "1.1", "1.0", "0.18", "0.17", "0.16", "0.15", "0.14", "0.13"] = "latest"):
         """
         Find mods by name.
         """
+        view = DeleteButton(interaction.user)
         if modname in [mod["name"] for mod in self.modscache]:
             embed = await self.make_embed(modname)
-            await interaction.response.send_message(content=None, embed=embed)
         else:
             embed = await self.make_error_embed(modname, version)
-            await interaction.response.send_message(content=None, embed=embed)
+        await interaction.response.send_message(content=None, embed=embed, view=view)
+        await view.wait()
+        if view.value:
+            await interaction.delete_original_response()
 
     @find_mod.autocomplete("modname")
     async def find_autocomplete(self, interaction: discord.Interaction, current: str):
+        if not interaction.namespace.version:
+            version = "latest"
+        else:
+            version = interaction.namespace.version
+
         if interaction.namespace.version == "any":
             autofill = [app_commands.Choice(name=f"[{mod['factorio_version']}] {mod['title'][0:60]} by {mod['owner']}", value=mod['name'])
                 for mod in self.modscache
                 if current.lower() in mod['name'].lower() or current.lower() in mod['title'].lower() or current.lower() in mod['owner'].lower()][0:25]
             return autofill
 
-        if interaction.namespace.version == "latest":
+        if version == "latest":
             with open("factorio_version.txt", "r") as f:
-                interaction.namespace.version = f.read().strip()
+                version = f.read().strip()
 
         autofill = [app_commands.Choice(name=f"{mod['title'][0:60]} by {mod['owner']}", value=mod['name'])
             for mod in self.modscache
             if (current.lower() in mod['name'].lower() or current.lower() in mod['title'].lower() or current.lower() in mod['owner'].lower())
-            and mod['factorio_version'] == interaction.namespace.version][0:25]
+            and mod['factorio_version'] == version][0:25]
         return autofill
         
     async def make_embed(self, name: str):
