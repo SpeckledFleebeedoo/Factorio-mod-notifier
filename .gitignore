@@ -4,8 +4,6 @@ __pycache__/
 .vscode/
 mods.db
 tests.py
-discord-py-*
-dockerfile
-requirements.txt
-*.log
+discord/
 docker/
+*.log

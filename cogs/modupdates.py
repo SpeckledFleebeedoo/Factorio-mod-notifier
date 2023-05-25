@@ -42,7 +42,7 @@ class ModUpdates(commands.Cog):
             await owner.send(traceback.format_exc())
     
     async def send_update_messages(self, updatelist: list):
-        for mod, tag in updatelist:
+        for mod, tag in updatelist[::-1]:
             logging.debug(f"Trying to send messages for updated mod: {[mod[2]]}")
             name = mod[0]
             title = mod[2]

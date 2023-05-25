@@ -2,5 +2,5 @@ import sqlite3
 con = sqlite3.connect("mods.db")
 cur = con.cursor()
 
-cur.execute("DROP TABLE mods")
+cur.execute("CREATE TABLE version(current_version)")
 con.commit()

@@ -9,6 +9,7 @@ import sqlite3
 import logging
 import traceback
 
+from migrations import migrate
 from misc import get_mods
 
 SHARED_VOLUME = "."
@@ -22,6 +23,16 @@ if os.path.isfile(f"{SHARED_VOLUME}/botlog.log"):
 
 logging.basicConfig(filename=f"{SHARED_VOLUME}/botlog.log", filemode = "w", format="%(asctime)s %(levelname)s:%(message)s", level=logging.INFO)
 
+
+# Version updates
+current_version = 1
+with sqlite3.connect(DB_NAME) as con:
+    cur = con.cursor()
+    last_version = int(cur.execute("SELECT current_version FROM version").fetchone()[0])
+    cur.execute("DELETE FROM version")
+    cur.execute("INSERT INTO version VALUES(?)", str(current_version))
+if not last_version == current_version:
+    migrate(last_version, current_version)
 
 extensions = []
 logging.debug("Loading cogs")
